@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.egg-info/
+
+# Environment — never commit
+.env
+.env.local
+
+# Runtime data
+backend/data/*
+!backend/data/.gitkeep
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+frontend/.vite/
+
+# Hardhat
+chain/artifacts/
+chain/cache/
+chain/node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
