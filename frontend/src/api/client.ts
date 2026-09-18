@@ -1,3 +1,1 @@
-// Fetch wrapper, base URL, error-envelope parsing
-// Owned by Task 11 — see tasks/11-*.md
-// Stub. Do not implement outside its owning task.
+/// Owned by Task 11 — API client and error envelope parsing
