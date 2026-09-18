@@ -1,3 +1,4 @@
+
 """Shared fixtures: temp DB, fake adapters.
 
 Owned by Task 01 — see tasks/01-foundation.md.
@@ -7,11 +8,17 @@ import os
 import tempfile
 from pathlib import Path
 
+# Set test-only environment values BEFORE importing app.config.
+# This prevents the app's global Settings instance from requiring
+# a deployed blockchain contract during tests.
+os.environ.setdefault("BLOCKCHAIN_ENABLED", "false")
+os.environ.setdefault("BLOCKCHAIN_CONTRACT_ADDRESS", "")
+os.environ.setdefault("CHAIN_EVENT_SALT", "test_salt_" + "0" * 56)
+
 import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings
-from app.main import app
 
 
 @pytest.fixture(scope="session")
@@ -20,7 +27,6 @@ def temp_db_path():
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
     yield db_path
-    # Cleanup
     try:
         os.unlink(db_path)
     except OSError:
@@ -43,7 +49,11 @@ def test_settings(temp_db_path: str, temp_upload_dir: Path) -> Settings:
         UPLOAD_DIR=str(temp_upload_dir),
         MAX_UPLOAD_MB=10,
         MAX_PDF_PAGES=5,
-        ALLOWED_MIME_TYPES=["image/jpeg", "image/png", "application/pdf"],
+        ALLOWED_MIME_TYPES=[
+            "image/jpeg",
+            "image/png",
+            "application/pdf",
+        ],
         OCR_ENGINE="paddleocr",
         OCR_LANGUAGE="en",
         OCR_TIMEOUT_SECONDS=30,
@@ -55,26 +65,26 @@ def test_settings(temp_db_path: str, temp_upload_dir: Path) -> Settings:
         BLOCKCHAIN_CONTRACT_ADDRESS="",
         BLOCKCHAIN_TX_TIMEOUT_SECONDS=30,
         BLOCKCHAIN_MAX_RETRIES=2,
-        CHAIN_EVENT_SALT="test_salt_" + "0" * 56,  # 64 hex chars
+        CHAIN_EVENT_SALT="test_salt_" + "0" * 56,
         RETENTION_DAYS=7,
         LOG_LEVEL="DEBUG",
     )
 
 
 @pytest.fixture(scope="function")
-def client(test_settings: Settings) -> TestClient:
+def client(
+    test_settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> TestClient:
     """Create a TestClient with the test settings."""
-    # Override the settings in the app
-    # Note: In a real implementation, we'd use dependency injection
-    # For now, the app uses the global settings at import time
-    # Tests that need different settings should patch the config module
+    from app.main import app
+
     return TestClient(app)
 
 
 @pytest.fixture(scope="session")
 def fake_ocr_adapter():
     """Placeholder for fake OCR adapter — implemented in Task 05."""
-    # Import will be available when Task 05 implements it
     # from app.adapters.ocr.fake_adapter import FakeOcrAdapter
     # return FakeOcrAdapter()
     return None
