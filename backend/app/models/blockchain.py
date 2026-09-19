@@ -1,3 +1,4 @@
+
 """SQLAlchemy model: blockchain_records."""
 
 from __future__ import annotations
@@ -29,14 +30,16 @@ class BlockchainErrorCode(str, PyEnum):
 class BlockchainRecord(Base):
     __tablename__ = "blockchain_records"
 
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: uuid4().hex)
+    id: Mapped[str] = mapped_column(
+        String(32), primary_key=True, default=lambda: uuid4().hex
+    )
     verification_id: Mapped[str] = mapped_column(
         ForeignKey("verification_results.id"),
         nullable=False,
     )
     chain_id: Mapped[int] = mapped_column(Integer, nullable=False)
     contract_address: Mapped[str] = mapped_column(String, nullable=False)
-    transaction_hash: Mapped[str | None] = mapped_column(String, nullable=True)
+    transaction_hash: Mapped[str] = mapped_column(String, nullable=True)
     event_digest: Mapped[str] = mapped_column(String, nullable=False)
     recording_status: Mapped[RecordingStatus] = mapped_column(
         Enum(
@@ -48,9 +51,9 @@ class BlockchainRecord(Base):
         ),
         nullable=False,
     )
-    submitted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    error_code: Mapped[BlockchainErrorCode | None] = mapped_column(
+    submitted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    error_code: Mapped[BlockchainErrorCode] = mapped_column(
         Enum(
             BlockchainErrorCode,
             native_enum=False,
@@ -61,4 +64,6 @@ class BlockchainRecord(Base):
         nullable=True,
     )
 
-    verification: Mapped[VerificationResult] = relationship(back_populates="blockchain_records")
+    verification: Mapped[VerificationResult] = relationship(
+        back_populates="blockchain_records"
+    )

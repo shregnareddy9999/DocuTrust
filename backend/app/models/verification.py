@@ -26,7 +26,7 @@ class VerificationResult(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: uuid4().hex)
     document_id: Mapped[str] = mapped_column(ForeignKey("documents.id"), nullable=False)
-    registry_record_id: Mapped[str | None] = mapped_column(
+    registry_record_id: Mapped[str] = mapped_column(
         ForeignKey("registry_records.id"),
         nullable=True,
     )
@@ -43,17 +43,17 @@ class VerificationResult(Base):
     field_comparisons_json: Mapped[str] = mapped_column(Text, nullable=False)
     rule_results_json: Mapped[str] = mapped_column(Text, nullable=False)
     reason_codes_json: Mapped[str] = mapped_column(Text, nullable=False)
-    supersedes_verification_id: Mapped[str | None] = mapped_column(
+    supersedes_verification_id: Mapped[str] = mapped_column(
         ForeignKey("verification_results.id"),
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     document: Mapped[Document] = relationship(back_populates="verifications")
-    registry_record: Mapped[RegistryRecord | None] = relationship(
+    registry_record: Mapped[RegistryRecord] = relationship(
         back_populates="verifications",
     )
-    supersedes_verification: Mapped[VerificationResult | None] = relationship(
+    supersedes_verification: Mapped[VerificationResult] = relationship(
         remote_side="VerificationResult.id",
         foreign_keys=[supersedes_verification_id],
         back_populates="superseded_by",

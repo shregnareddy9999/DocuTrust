@@ -37,8 +37,8 @@ class ReviewAction(Base):
         ),
         nullable=False,
     )
-    corrections_json: Mapped[str | None] = mapped_column(Text, nullable=True)
-    comment: Mapped[str | None] = mapped_column(String, nullable=True)
+    corrections_json: Mapped[str] = mapped_column(Text, nullable=True)
+    comment: Mapped[str] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     verification: Mapped[VerificationResult] = relationship(back_populates="review_actions")
