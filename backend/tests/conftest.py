@@ -118,8 +118,14 @@ def client(test_settings: Settings, monkeypatch: pytest.MonkeyPatch):
     from app.api import health
     from app.main import app
     import app.main as main_module
+    import app.config as config_module
+    import app.services.upload_service as upload_service
+    from app.db import Base
 
     test_engine = make_test_engine(test_settings.DATABASE_URL)
+
+    # Create all tables in the test engine
+    Base.metadata.create_all(bind=test_engine)
 
     TestingSessionLocal = sessionmaker(
         bind=test_engine,
@@ -133,6 +139,10 @@ def client(test_settings: Settings, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(db, "SessionLocal", TestingSessionLocal)
     monkeypatch.setattr(main_module, "engine", test_engine)
     monkeypatch.setattr(health, "engine", test_engine)
+    # Replace global settings object entirely so upload_service sees test settings
+    # (upload_service imports settings at module level, so we must replace the reference)
+    monkeypatch.setattr(config_module, "settings", test_settings)
+    monkeypatch.setattr(upload_service, "settings", test_settings)
 
     try:
         with TestClient(app) as test_client:
