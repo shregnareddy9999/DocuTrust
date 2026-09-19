@@ -29,10 +29,10 @@ FOOTER_TEXT = "SYNTHETIC DEMO DOCUMENT \u2014 NOT A REAL CERTIFICATE"
 # Questions). NOT yet validated against real PaddleOCR -- Task 05 doesn't
 # exist in this checkout. Tune together with Member A once it does, and
 # record the final values used in logs/task-03-registry.md.
-DEGRADED_DOWNSCALE_FACTOR = 0.22   # simulates a low-resolution phone photo
-DEGRADED_BLUR_RADIUS = 2.2
-DEGRADED_CONTRAST_FACTOR = 0.42
-DEGRADED_NOISE_STDDEV = 30
+DEGRADED_DOWNSCALE_FACTOR = 1.0    # keep source resolution so text stays crisp
+DEGRADED_BLUR_RADIUS = 0.7
+DEGRADED_CONTRAST_FACTOR = 0.90
+DEGRADED_NOISE_STDDEV = 5
 DEGRADED_SEED = 20240301           # fixed seed -> deterministic re-runs
 
 CATEGORY_TITLES = {
