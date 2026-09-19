@@ -1,8 +1,6 @@
 # Foundation dependencies for Task 01
 # Exact versions will be pinned after environment compatibility verification
-# Using versions compatible with Python 3.14 (this machine)
-# Note: Pillow removed - requires zlib on Windows, not needed for Task 01 tests
-# Pillow will be added in Task 04/05 when image handling is implemented
+# Using versions compatible with Python 3.11+ (required for PaddlePaddle)
 
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
@@ -17,3 +15,4 @@ httpx==0.27.2
 alembic==1.13.1
 python-dotenv==1.0.1
 Pillow
+pypdfium2==4.28.0
