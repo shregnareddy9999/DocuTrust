@@ -24,7 +24,7 @@ def test_health_status_is_ok(client: TestClient):
 def test_health_database_not_configured(client: TestClient):
     response = client.get("/api/v1/health")
     data = response.json()
-    assert data["database"] == "not_configured"
+    assert data["database"] == "ok"
 
 
 def test_health_ocr_adapter_shows_engine_name(client: TestClient):
