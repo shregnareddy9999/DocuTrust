@@ -1,0 +1,12 @@
+so i asked chatgpt to make documentation , and i gave reference of docs.zip and tasks.zip , chatgpt gave me PS21_Project_and_Tasks_Dcumentation.zip
+
+first go through the all .md files of both docs.zip and tasks.zip folders clearly , understand them line to line and then prepare all rquired .md files - project documentation and tasks documentation
+for project doucumentation refer docs.zip , for tasks documentation refer tasks.zip
+
+then go through PS21_Project_and_Tasks_Dcumentation.zip , go through all the folders , .md files line to line clearly and tell me are those pefect , if not fix them and give me the perfect documentation you can also make more .md files what ever require for this project , the only goal is to make clear end to end perfect guidance 
+
+read all the .md files in PS21_docs.zip and PS21_tasks.zip floders clearly , line to line , those two folders are given by you ,check those two folders and tell me those are perfect ot not ,if not fix them also  , PS21_tasks.zip is incomplete 
+
+so give me the remaining files with perfection
+
+remember i am the team leader , so the documents i provide them will be used as project , i need documentation in a way that if i send those .md files to any ai ,it should do perfect work with any error complexities and guide us in a perfect path

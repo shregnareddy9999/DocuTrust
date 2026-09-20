@@ -1,3 +1,4 @@
+
 """Validate and store uploads.
 
 Owned by Task 04 — see tasks/04-*.md.
@@ -64,15 +65,19 @@ def safe_upload_path(storage_key: str) -> Path:
     """
     upload_dir = _get_upload_dir()
     target = (upload_dir / storage_key).resolve()
+
     if upload_dir not in target.parents and target != upload_dir:
         raise ValueError("Path traversal attempt detected")
+
     return target
 
 
 def generate_storage_key(sniffed_mime: str) -> str:
     ext = EXT_FROM_MIME.get(sniffed_mime)
+
     if not ext:
         raise ValueError(f"Unsupported MIME type for storage: {sniffed_mime}")
+
     return f"{uuid4().hex}{ext}"
 
 
@@ -84,9 +89,11 @@ def sniff_mime_type(file_path: Path) -> str | None:
     """Read magic bytes from file to determine MIME type."""
     with open(file_path, "rb") as f:
         header = f.read(MAGIC_BUFFER_SIZE)
+
     for magic, mime in MIME_MAGIC.items():
         if header.startswith(magic):
             return mime
+
     return None
 
 
@@ -123,10 +130,14 @@ def validate_pdf(file_path: Path) -> int:
         pdf.close()
 
     max_pdf_pages = _get_max_pdf_pages()
+
     if page_count > max_pdf_pages:
         raise UploadError(
             code="FILE_TOO_LARGE",
-            message=f"PDF page count ({page_count}) exceeds maximum allowed ({max_pdf_pages})",
+            message=(
+                f"PDF page count ({page_count}) exceeds maximum "
+                f"allowed ({max_pdf_pages})"
+            ),
             status_code=413,
         )
 
@@ -136,21 +147,24 @@ def validate_pdf(file_path: Path) -> int:
 async def process_upload(file: UploadFile, category_str: str) -> Document:
     """
     Stream upload to temp file, validate, then atomically rename to final storage key.
+
     Creates Document row only after all validation passes.
     """
     valid_categories = {c.value for c in DocumentCategory}
+
     if category_str not in valid_categories:
         raise UploadError(
             code="INVALID_CATEGORY",
-            message=f"Invalid category '{category_str}'. Must be one of: {', '.join(sorted(valid_categories))}",
+            message=(
+                f"Invalid category '{category_str}'. Must be one of: "
+                f"{', '.join(sorted(valid_categories))}"
+            ),
             status_code=400,
         )
 
     category = DocumentCategory(category_str)
-
     temp_key = generate_temp_key()
     temp_path = safe_upload_path(temp_key)
-
     upload_dir = _get_upload_dir()
     upload_dir.mkdir(parents=True, exist_ok=True)
 
@@ -163,15 +177,22 @@ async def process_upload(file: UploadFile, category_str: str) -> Document:
         with open(temp_path, "wb") as out:
             while True:
                 chunk = await file.read(CHUNK_SIZE)
+
                 if not chunk:
                     break
+
                 byte_count += len(chunk)
+
                 if byte_count > max_bytes:
                     raise UploadError(
                         code="FILE_TOO_LARGE",
-                        message=f"File size exceeds maximum allowed ({settings.MAX_UPLOAD_MB} MB)",
+                        message=(
+                            f"File size exceeds maximum allowed "
+                            f"({settings.MAX_UPLOAD_MB} MB)"
+                        ),
                         status_code=413,
                     )
+
                 sha256.update(chunk)
                 out.write(chunk)
 
@@ -183,19 +204,41 @@ async def process_upload(file: UploadFile, category_str: str) -> Document:
             )
 
         sniffed_mime = sniff_mime_type(temp_path)
+
         if not sniffed_mime or sniffed_mime not in allowed_mime_types:
             raise UploadError(
                 code="UNSUPPORTED_MEDIA_TYPE",
-                message=f"Unsupported file type. Allowed: {', '.join(sorted(allowed_mime_types))}",
+                message=(
+                    f"Unsupported file type. Allowed: "
+                    f"{', '.join(sorted(allowed_mime_types))}"
+                ),
                 status_code=415,
             )
 
-        # Check for mismatch between declared and sniffed MIME type
+        # Check that the filename extension matches the detected file type.
+        # Use only the basename so path-like client filenames cannot affect storage.
+        filename = file.filename or ""
+        filename_basename = Path(filename.replace("\\", "/")).name
+        filename_extension = Path(filename_basename).suffix.lower()
+        expected_extension = EXT_FROM_MIME.get(sniffed_mime)
+
+        if filename_extension and filename_extension != expected_extension:
+            raise UploadError(
+                code="UNSUPPORTED_MEDIA_TYPE",
+                message="Filename extension does not match detected file type",
+                status_code=415,
+            )
+
+        # Check for mismatch between declared and sniffed MIME type.
         declared_mime = file.content_type
+
         if declared_mime and declared_mime != sniffed_mime:
             raise UploadError(
                 code="UNSUPPORTED_MEDIA_TYPE",
-                message=f"Declared MIME type '{declared_mime}' does not match detected type '{sniffed_mime}'",
+                message=(
+                    f"Declared MIME type '{declared_mime}' does not match "
+                    f"detected type '{sniffed_mime}'"
+                ),
                 status_code=415,
             )
 
@@ -224,7 +267,9 @@ async def process_upload(file: UploadFile, category_str: str) -> Document:
         )
 
         from app.db import SessionLocal
+
         db = SessionLocal()
+
         try:
             created = create_document(db, document)
             db.commit()
