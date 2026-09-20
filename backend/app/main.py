@@ -9,12 +9,13 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import HTTPException
 from sqlalchemy.engine import make_url
 
 from app.config import settings
 from app.db import Base, engine
 from app import models  # noqa: F401 — registers all model classes with Base
-from app.api import health
+from app.api import health, documents
 
 
 @asynccontextmanager
@@ -45,11 +46,37 @@ app = FastAPI(
 )
 
 
+@app.exception_handler(HTTPException)
+async def http_exception_handler(
+    request: Request,
+    exc: HTTPException,
+) -> JSONResponse:
+    # HTTPException raised by our code with detail={"error": {...}}
+    if isinstance(exc.detail, dict) and "error" in exc.detail:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=exc.detail,
+        )
+    # Fallback for any other HTTPException
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": "HTTP_ERROR",
+                "message": str(exc.detail),
+                "details": {},
+            }
+        },
+    )
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(
     request: Request,
     exc: Exception,
 ) -> JSONResponse:
+    if isinstance(exc, HTTPException):
+        raise exc
     correlation_id = uuid.uuid4().hex
 
     return JSONResponse(
@@ -66,9 +93,4 @@ async def global_exception_handler(
 
 # Register routers under the /api/v1 prefix.
 app.include_router(health.router, prefix="/api/v1")
-
-# TODO Task 04/06/07/10: Include other routers when implemented.
-# from app.api import document_types, documents, verifications
-# app.include_router(document_types.router, prefix="/api/v1")
-# app.include_router(documents.router, prefix="/api/v1")
-# app.include_router(verifications.router, prefix="/api/v1")
+app.include_router(documents.router, prefix="/api/v1")

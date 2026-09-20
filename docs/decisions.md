@@ -52,6 +52,7 @@ kind of thing that changes silently three commits later.
 | D-22 | Document integrity is **out of scope** and is never claimed on-chain | **Resolved** | `documents.sha256` covers our stored copy locally only. The `eventDigest` binds outcome, not document. Putting a document hash on-chain would create a confirmation oracle while proving nothing — full reasoning and what real document integrity would require in `blockchain.md` §"Two different goals" |
 | D-23 | "Current" verification is the greatest `created_at` per document, via `verification_repo.get_latest_for_document()` only | **Resolved** | Plus a `supersedes_verification_id` column and `GET /documents/{id}/verifications`. Prevents contributors implementing divergent "latest result" logic — `data-model.md`, `api.md` |
 | D-24 | The technology stack is **provisional until Task 01's smoke tests pass on every machine**, Windows included | **Resolved (process)** | D-02, D-05, and D-09 are proposals until `ENVIRONMENT-REPORT.md` records working pinned versions. See `tasks/01-foundation.md` §7 Requirement 7 |
+| D-25 | PDF library for page counting and rendering | Accepted | pypdfium2 for both Task 04 (page counting) and Task 05 (rendering); pypdf not used. See `configuration.md`, `document-processing.md` |
 
 ## Superseded documents
 
