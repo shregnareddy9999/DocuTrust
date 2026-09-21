@@ -75,17 +75,30 @@ _MISMATCH_OVERRIDES = {
 _UNREGISTERED_OVERRIDE = {"student_id": "DEMO-STU-999"}
 
 
-def _font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    for candidate in (
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ):
-        if Path(candidate).exists():
-            try:
-                return ImageFont.truetype(candidate, size)
-            except OSError:
-                pass
-    return ImageFont.load_default()
+def _font(size: int) -> ImageFont.FreeTypeFont:
+    """Load a real TTF. Bitmap default fonts are too small for PaddleOCR."""
+    candidates = (
+        Path(r"C:\Windows\Fonts\arialbd.ttf"),
+        Path(r"C:\Windows\Fonts\arial.ttf"),
+        Path(r"C:\Windows\Fonts\calibri.ttf"),
+        Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+        Path("/Library/Fonts/Arial.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
+        Path("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
+    )
+    for candidate in candidates:
+        if not candidate.exists():
+            continue
+        try:
+            return ImageFont.truetype(str(candidate), size)
+        except OSError:
+            continue
+    raise RuntimeError(
+        "No TrueType font found for sample generation. Install Arial or DejaVu "
+        "Sans; do not fall back to PIL's bitmap default (it is unreadable to OCR)."
+    )
 
 
 def render_document(category: str, fields: dict) -> Image.Image:

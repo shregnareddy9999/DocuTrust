@@ -1,6 +1,10 @@
 """Deterministic canned OCR responses.
 
 Owned by Task 05 — see tasks/05-*.md.
+
+Default clean/low_confidence output is two-column (label left, value right)
+so Task 06 mapping can run without inventing values. custom_text still splits
+by newline for unit tests that pass an override.
 """
 
 from __future__ import annotations
@@ -12,6 +16,24 @@ from typing import Literal
 from PIL import Image
 
 from app.adapters.ocr.base import OcrAdapter, OcrRegion, OcrResult
+from app.fixtures.fixture_data import FIXTURES
+from app.fixtures.generate_samples import FIELD_LABELS
+
+
+# Two-column layout aligned with generate_samples.MARGIN / MARGIN+340.
+_LABEL_X1, _LABEL_X2 = 60, 320
+_VALUE_X1, _VALUE_X2 = 400, 740
+_ROW_Y0 = 140
+_ROW_H = 55
+
+
+def _academic_two_column_rows() -> list[tuple[str, str]]:
+    fields = FIXTURES["academic_certificate"]["fields"]
+    return [
+        (FIELD_LABELS[name], str(value))
+        for name, value in fields.items()
+        if value is not None
+    ]
 
 
 @dataclass
@@ -46,8 +68,6 @@ class FakeOcrAdapter(OcrAdapter):
         mode = self.config.mode
 
         if mode == "timeout":
-            # Simulate timeout by sleeping longer than test timeout (1s)
-            # Tests will enforce timeout externally; this is for manual verification.
             time.sleep(2)
             raise TimeoutError("OCR timeout simulated")
 
@@ -64,25 +84,45 @@ class FakeOcrAdapter(OcrAdapter):
                 warnings=["no_text_detected"],
             )
 
-        # clean or low_confidence
-        text = self.config.custom_text or "Aarav Demo\nExample Technical Institute\nDEMO-STU-001\nB.Tech CSE\n5\nDEMO-MARK-001"
         confidence = self.config.custom_confidence if self.config.custom_confidence is not None else (
             0.95 if mode == "clean" else 0.50
         )
 
-        # Create regions - one per line for realistic structure
-        lines = text.split("\n")
-        regions = []
-        y = 100
-        for i, line in enumerate(lines):
-            if line.strip():
-                regions.append(OcrRegion(
-                    text=line,
-                    confidence=confidence,
-                    bbox=(100, y, 500, y + 30),
-                    page=1,
-                ))
-                y += 40
+        if self.config.custom_text is not None:
+            regions = []
+            y = 100
+            for line in self.config.custom_text.split("\n"):
+                if line.strip():
+                    regions.append(
+                        OcrRegion(
+                            text=line,
+                            confidence=confidence,
+                            bbox=(100, y, 500, y + 30),
+                            page=1,
+                        )
+                    )
+                    y += 40
+        else:
+            regions = []
+            y = _ROW_Y0
+            for label, value in _academic_two_column_rows():
+                regions.append(
+                    OcrRegion(
+                        text=label,
+                        confidence=confidence,
+                        bbox=(_LABEL_X1, y, _LABEL_X2, y + 20),
+                        page=1,
+                    )
+                )
+                regions.append(
+                    OcrRegion(
+                        text=value,
+                        confidence=confidence,
+                        bbox=(_VALUE_X1, y, _VALUE_X2, y + 20),
+                        page=1,
+                    )
+                )
+                y += _ROW_H
 
         full_text = "\n".join(r.text for r in regions)
         mean_conf = sum(r.confidence for r in regions) / len(regions) if regions else None
@@ -102,16 +142,7 @@ def create_fake_adapter(
     custom_text: str | None = None,
     custom_confidence: float | None = None,
 ) -> FakeOcrAdapter:
-    """Factory function to create a configured FakeOcrAdapter.
-
-    Args:
-        mode: Response mode.
-        custom_text: Optional custom extracted text.
-        custom_confidence: Optional custom confidence value.
-
-    Returns:
-        Configured FakeOcrAdapter instance.
-    """
+    """Factory function to create a configured FakeOcrAdapter."""
     config = FakeOcrConfig(
         mode=mode,
         custom_text=custom_text,

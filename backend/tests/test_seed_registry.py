@@ -148,6 +148,13 @@ def test_divergent_record_is_reported_and_not_overwritten(db_session):
     assert json.loads(reloaded.fields_json) == {"tampered": True}
 
 
+def test_sample_font_is_truetype_not_bitmap_default():
+    from PIL import ImageFont
+
+    font = generate_samples._font(22)
+    assert isinstance(font, ImageFont.FreeTypeFont)
+
+
 def test_all_eleven_sample_documents_exist(tmp_path, monkeypatch):
     monkeypatch.setattr(generate_samples, "OUTPUT_DIR", tmp_path)
     generate_samples.main()

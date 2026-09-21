@@ -49,5 +49,11 @@ The latest image is visually readable. Its behavior against real OCR has not bee
 - Untracked: `logs/task-03-registry.md`
 - No commit or push has been made for these local changes.
 
+## 2026-09-21 — TrueType fonts for PaddleOCR (not mapper)
+
+- `_font()` now tries Windows Arial/Calibri, macOS Arial, Linux DejaVu/Liberation. If none load, it raises. It never uses `ImageFont.load_default()` (bitmap default was unreadably small; Paddle det still boxed specks and rec emitted garbage at ~0.65).
+- Regenerated all files under `backend/app/fixtures/sample_documents/` with `python -m app.fixtures.generate_samples` (venv). Layout, 22/34pt, two-column `MARGIN` / `MARGIN+340`, and `FIXTURES` values unchanged.
+- Live Paddle on these PNGs was not run here (Python 3.14, no paddle wheel).
+
 ## Completion
 Task 03 is not yet marked complete. Final completion depends on the remaining specification review and confirmation that all acceptance criteria are satisfied.

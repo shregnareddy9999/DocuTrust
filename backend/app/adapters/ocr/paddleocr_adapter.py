@@ -5,12 +5,63 @@ Owned by Task 05 — see tasks/05-*.md.
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from PIL import Image
 
 from app.adapters.ocr.base import OcrAdapter, OcrRegion, OcrResult
 from app.config import settings
+
+
+def parse_paddle_ocr_payload(raw_result: Any) -> tuple[list[OcrRegion], list[str]]:
+    """Normalize PaddleOCR 2.x page output into regions. Never invents text."""
+    regions: list[OcrRegion] = []
+    warnings: list[str] = []
+
+    if raw_result is None:
+        return regions, warnings
+
+    if not isinstance(raw_result, list) or not raw_result:
+        return regions, warnings
+
+    page = raw_result[0]
+    if page is None or page is False:
+        return regions, warnings
+    if not isinstance(page, list):
+        warnings.append("Failed to parse OCR line: TypeError: page is not a list")
+        return regions, warnings
+
+    for line in page:
+        try:
+            box = line[0]
+            text, confidence = line[1]
+            if text and str(text).strip():
+                bbox = _normalize_quad_to_bbox(box)
+                regions.append(
+                    OcrRegion(
+                        text=str(text).strip(),
+                        confidence=float(confidence),
+                        bbox=bbox,
+                        page=1,
+                    )
+                )
+        except (IndexError, ValueError, TypeError) as exc:
+            warnings.append(f"Failed to parse OCR line: {type(exc).__name__}: {exc}")
+            continue
+
+    return regions, warnings
+
+
+def _normalize_quad_to_bbox(quad: List[List[float]]) -> tuple[int, int, int, int]:
+    """Convert PaddleOCR quadrilateral [[x1,y1],[x2,y2],[x3,y3],[x4,y4]] to (x1,y1,x2,y2)."""
+    xs = [int(point[0]) for point in quad]
+    ys = [int(point[1]) for point in quad]
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def _sort_regions_reading_order(regions: List[OcrRegion]) -> List[OcrRegion]:
+    """Sort regions top-to-bottom, then left-to-right."""
+    return sorted(regions, key=lambda r: (r.bbox[1], r.bbox[0]))
 
 
 class PaddleOcrAdapter(OcrAdapter):
@@ -57,16 +108,6 @@ class PaddleOcrAdapter(OcrAdapter):
             self._get_engine()
         return self._engine_version or "unknown"
 
-    def _normalize_quad_to_bbox(self, quad: List[List[float]]) -> tuple[int, int, int, int]:
-        """Convert PaddleOCR quadrilateral [[x1,y1],[x2,y2],[x3,y3],[x4,y4]] to (x1,y1,x2,y2)."""
-        xs = [int(point[0]) for point in quad]
-        ys = [int(point[1]) for point in quad]
-        return (min(xs), min(ys), max(xs), max(ys))
-
-    def _sort_regions_reading_order(self, regions: List[OcrRegion]) -> List[OcrRegion]:
-        """Sort regions top-to-bottom, then left-to-right."""
-        return sorted(regions, key=lambda r: (r.bbox[1], r.bbox[0]))
-
     def run(self, image: Image.Image) -> OcrResult:
         """Run PaddleOCR on a preprocessed page image.
 
@@ -79,46 +120,19 @@ class PaddleOcrAdapter(OcrAdapter):
         engine = self._get_engine()
         engine_version = self._get_engine_version()
 
-        # Convert PIL Image to format PaddleOCR expects (numpy array)
+        # Rec models expect 3-channel input. Preprocess may have converted to L.
+        rgb = image.convert("RGB")
         import numpy as np
-        img_array = np.array(image)
+        img_array = np.array(rgb)
 
-        # Run OCR - PaddleOCR returns list of lists of [box, (text, confidence)]
         try:
             raw_result = engine.ocr(img_array, cls=False)
         except Exception as e:
             raise RuntimeError(f"PaddleOCR inference failed: {type(e).__name__}: {e}") from e
 
-        # Parse results
-        regions: List[OcrRegion] = []
-        warnings: List[str] = []
-
-        if raw_result and raw_result[0]:
-            for line in raw_result[0]:
-                try:
-                    # line format: [box, (text, confidence)]
-                    box = line[0]  # [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
-                    text, confidence = line[1]
-
-                    if text and text.strip():
-                        bbox = self._normalize_quad_to_bbox(box)
-                        regions.append(OcrRegion(
-                            text=text.strip(),
-                            confidence=float(confidence),
-                            bbox=bbox,
-                            page=1,  # Single page at a time
-                        ))
-                except (IndexError, ValueError, TypeError) as e:
-                    warnings.append(f"Failed to parse OCR line: {type(e).__name__}: {e}")
-                    continue
-
-        # Sort regions in reading order
-        regions = self._sort_regions_reading_order(regions)
-
-        # Join text in reading order
+        regions, warnings = parse_paddle_ocr_payload(raw_result)
+        regions = _sort_regions_reading_order(regions)
         full_text = "\n".join(r.text for r in regions)
-
-        # Compute mean confidence
         mean_confidence = None
         if regions:
             mean_confidence = sum(r.confidence for r in regions) / len(regions)

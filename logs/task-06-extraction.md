@@ -95,6 +95,12 @@ Exact output:
 
 Bare `python -m pytest` on this machine uses a system interpreter without SQLAlchemy. Use `backend\venv\Scripts\python.exe`.
 
+## 2026-09-21 — Garbled Paddle rec is not a mapper bug
+
+All-null extracted fields after Paddle 2.8.1 on the old samples happened because rec text contained no schema labels (`Acae`, not `Student Name`). Adjacency mapping stayed strict: it does not accept garbage as a field value. Task 05 SUCCEEDED only means the adapter returned; it does not mean labels exist.
+
+Do not loosen `map_ocr_to_fields` to accept garbled tokens. Fake OCR is now two-column label/value so default-suite mapping and verify can exercise the real mapper. Live Paddle token asserts are `@pytest.mark.integration` and skip when paddle is not importable.
+
 ## Known limitations at handoff
 
 - Task 05 still stores `extracted_fields_json="{}"` until something calls `extract_fields`. Verify and GET extraction will look empty unless Task 07 (or a test) runs the writer.
