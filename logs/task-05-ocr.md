@@ -154,6 +154,20 @@ cd backend && .venv\Scripts\python -m pytest tests/test_ocr_pipeline.py::TestOcr
 
 ---
 
+## 2026-09-21 — Recognition quality vs mapping
+
+Document evidence (`raw_ocr_json`, not a DB re-query): PaddleOCR 2.8.1, extraction **SUCCEEDED**, warnings `[]`, 11 regions, mean confidence ~0.65, strings like `Acae` / `Sii`. Mapper then correctly left academic fields `{value: null, confidence: null, source: "ocr"}` and Task 07 returned **REVIEW_REQUIRED** (missing required fields). That is not a fraud verdict and not a mapping bug.
+
+**SUCCEEDED ≠ usable text.** Zero-or-garbage rec with a successful adapter call is still SUCCEEDED.
+
+Fixes in this adapter:
+
+- Convert the preprocessed page to RGB (`H×W×3`) before `ocr()`. Preprocess still uses mode `L`; grayscale restore is adapter-side only.
+- `parse_paddle_ocr_payload` handles `None` / `[]` / page `None` / malformed lines without inventing text.
+- Fake `clean` / `low_confidence` now emit two-column Task 03 labels+values so Task 06 can map without live Paddle. Engine strings are not hardcoded in the Paddle adapter.
+
+Live Paddle still skipped on Python 3.14.
+
 ## Known limitations at handoff
 
 - **Real PaddleOCR execution NOT verified** — Current machine uses Python 3.14.6; `docs/ENVIRONMENT-REPORT.md` confirms no PaddlePaddle wheel exists for Python 3.14. Integration test is implemented but will only run on a Python 3.11.x machine with working PaddlePaddle.

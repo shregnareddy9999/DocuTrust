@@ -332,6 +332,15 @@ class TestOcrPipelineIntegration:
         """Real PaddleOCR on academic_certificate_match.png extracts text with confidence > 0.5."""
         test_settings.OCR_ENGINE = "paddleocr"
 
+        try:
+            import paddle  # noqa: F401
+            import paddleocr  # noqa: F401
+        except ImportError as exc:
+            pytest.skip(
+                f"paddleocr/paddle not importable on this interpreter "
+                f"(Python {sys.version_info.major}.{sys.version_info.minor}): {exc}"
+            )
+
         sample_path = Path(__file__).parent.parent / "app" / "fixtures" / "sample_documents" / "academic_certificate_match.png"
         if not sample_path.exists():
             pytest.skip("Sample document not found")
@@ -369,6 +378,16 @@ class TestOcrPipelineIntegration:
         assert extraction.engine_name == "paddleocr"
         assert extraction.engine_version != "0.0.0-test"
         assert extraction.engine_version != ""
+
+        raw = json.loads(extraction.raw_ocr_json)
+        blob = " ".join(
+            [
+                str(raw.get("text") or ""),
+                *[str(region.get("text") or "") for region in raw.get("regions") or []],
+            ]
+        )
+        assert "Student Name" in blob
+        assert "Aarav Demo" in blob or "DEMO-STU-001" in blob
 
         db_session.refresh(document)
         assert document.processing_state == ProcessingState.OCR_DONE
@@ -438,3 +457,69 @@ class TestFakeAdapterModes:
 
         assert "Custom text" in result.text
         assert result.mean_confidence == 0.85
+
+    def test_clean_mode_two_column_academic_labels(self):
+        adapter = create_fake_adapter(mode="clean")
+        result = adapter.run(Image.new("RGB", (100, 100), color="white"))
+        texts = [r.text for r in result.regions]
+        assert "Student Name" in texts
+        assert "Aarav Demo" in texts
+        assert "Student ID" in texts
+        assert "DEMO-STU-001" in texts
+        label_box = next(r.bbox for r in result.regions if r.text == "Student Name")
+        value_box = next(r.bbox for r in result.regions if r.text == "Aarav Demo")
+        assert label_box[0] < value_box[0]
+        assert result.mean_confidence is not None
+        assert result.mean_confidence > 0.9
+
+    def test_low_confidence_keeps_two_column_layout(self):
+        adapter = create_fake_adapter(mode="low_confidence")
+        result = adapter.run(Image.new("RGB", (100, 100), color="white"))
+        texts = [r.text for r in result.regions]
+        assert "Student Name" in texts
+        assert "Aarav Demo" in texts
+        assert result.mean_confidence is not None
+        assert result.mean_confidence < 0.70
+        assert abs(result.mean_confidence - 0.50) < 0.01
+
+
+class TestParsePaddleOcrPayload:
+    """Parser must not invent text on empty or malformed Paddle output."""
+
+    def test_none_and_empty_pages_are_empty_regions(self):
+        from app.adapters.ocr.paddleocr_adapter import parse_paddle_ocr_payload
+
+        for raw in (None, [], [None], [False], [""]):
+            regions, warnings = parse_paddle_ocr_payload(raw)
+            assert regions == []
+            assert all("Aarav" not in w and "Student" not in w for w in warnings)
+
+    def test_malformed_line_adds_warning_without_invented_text(self):
+        from app.adapters.ocr.paddleocr_adapter import parse_paddle_ocr_payload
+
+        regions, warnings = parse_paddle_ocr_payload([[["not-a-pair"]]])
+        assert regions == []
+        assert warnings
+        assert any("Failed to parse OCR line" in w for w in warnings)
+        joined = " ".join(r.text for r in regions)
+        assert "Aarav" not in joined
+        assert "DEMO-STU" not in joined
+
+    def test_valid_line_keeps_engine_text_and_score(self):
+        from app.adapters.ocr.paddleocr_adapter import parse_paddle_ocr_payload
+
+        quad = [[10, 20], [80, 20], [80, 40], [10, 40]]
+        regions, warnings = parse_paddle_ocr_payload([[ [quad, ("Student Name", 0.91)] ]])
+        assert warnings == []
+        assert len(regions) == 1
+        assert regions[0].text == "Student Name"
+        assert regions[0].confidence == 0.91
+        assert regions[0].bbox == (10, 20, 80, 40)
+
+    def test_blank_text_is_skipped_not_invented(self):
+        from app.adapters.ocr.paddleocr_adapter import parse_paddle_ocr_payload
+
+        quad = [[1, 1], [2, 1], [2, 2], [1, 2]]
+        regions, warnings = parse_paddle_ocr_payload([[ [quad, ("   ", 0.99)] ]])
+        assert regions == []
+        assert warnings == []

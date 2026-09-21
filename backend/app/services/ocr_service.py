@@ -325,7 +325,7 @@ def process_document(document_id: str, session) -> ExtractionResult:
             extracted_fields_json="{}",  # Task 06 will populate this
             warnings_json=json.dumps(combined_result.warnings),
             status=overall_status,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
 
         create_extraction(session, extraction)

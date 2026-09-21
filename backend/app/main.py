@@ -15,7 +15,7 @@ from sqlalchemy.engine import make_url
 from app.config import settings
 from app.db import Base, engine
 from app import models  # noqa: F401 — registers all model classes with Base
-from app.api import health, documents, document_types       
+from app.api import health, documents, document_types, verifications
 
 
 @asynccontextmanager
@@ -95,3 +95,4 @@ async def global_exception_handler(
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(documents.router, prefix="/api/v1")
 app.include_router(document_types.router, prefix="/api/v1")
+app.include_router(verifications.router, prefix="/api/v1")
