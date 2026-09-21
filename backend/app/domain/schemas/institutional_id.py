@@ -34,7 +34,7 @@ FIELDS = [
         type="text",
         required=False,
         match_field=False,
-        labels=("designation", "role", "designation or role"),
+        labels=("designation / role", "designation or role", "designation", "role"),
     ),
     FieldDef(
         name="valid_until",

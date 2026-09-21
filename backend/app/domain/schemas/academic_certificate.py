@@ -10,7 +10,7 @@ FIELDS = [
         type="text",
         required=True,
         match_field=True,
-        labels=("student name", "name of student", "candidate name"),
+        labels=("student name", "name of student", "candidate name", "name"),
     ),
     FieldDef(
         name="institution_name",
@@ -42,7 +42,7 @@ FIELDS = [
         type="text",
         required=True,
         match_field=True,
-        labels=("semester or year", "semester", "year"),
+        labels=("semester or year", "semester / year", "semester", "year"),
     ),
     FieldDef(
         name="certificate_or_marksheet_id",
@@ -52,6 +52,7 @@ FIELDS = [
         match_field=True,
         labels=(
             "certificate or marksheet id",
+            "certificate / marksheet id",
             "certificate id",
             "marksheet id",
         ),

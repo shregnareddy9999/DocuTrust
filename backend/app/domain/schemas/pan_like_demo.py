@@ -18,7 +18,13 @@ FIELDS = [
         type="text",
         required=True,
         match_field=True,
-        labels=("demo pan code", "demo code", "pan-like demo code"),
+        labels=(
+            "demo pan-like code",
+            "demo pan like code",
+            "demo pan code",
+            "demo code",
+            "pan-like demo code",
+        ),
     ),
     FieldDef(
         name="date_of_birth",
