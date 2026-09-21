@@ -1,5 +1,14 @@
-"""GET /document-types.
+"""GET /document-types endpoint for Task 06."""
 
-Owned by Task 06 — see tasks/06-*.md.
-This is a stub. Do not implement it outside its owning task.
-"""
+from fastapi import APIRouter
+
+from app.domain.schemas import document_types
+
+
+router = APIRouter()
+
+
+@router.get("/document-types")
+def get_document_types() -> list[dict]:
+    """Return the category schema registry."""
+    return document_types()
