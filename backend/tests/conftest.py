@@ -71,7 +71,7 @@ def test_settings(temp_db_path: str, temp_upload_dir: Path) -> Settings:
             "image/png",
             "application/pdf",
         ],
-        OCR_ENGINE="paddleocr",
+        OCR_ENGINE="fake",
         OCR_LANGUAGE="en",
         OCR_TIMEOUT_SECONDS=30,
         LOW_CONFIDENCE_THRESHOLD=0.70,
@@ -143,6 +143,8 @@ def client(test_settings: Settings, monkeypatch: pytest.MonkeyPatch):
     # (upload_service imports settings at module level, so we must replace the reference)
     monkeypatch.setattr(config_module, "settings", test_settings)
     monkeypatch.setattr(upload_service, "settings", test_settings)
+    import app.services.ocr_service as ocr_service
+    monkeypatch.setattr(ocr_service, "settings", test_settings)
 
     try:
         with TestClient(app) as test_client:
@@ -151,10 +153,39 @@ def client(test_settings: Settings, monkeypatch: pytest.MonkeyPatch):
         test_engine.dispose()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def fake_ocr_adapter():
-    """Placeholder for the fake OCR adapter implemented in Task 05."""
-    return None
+    """Fake OCR adapter for testing - returns deterministic responses."""
+    from app.adapters.ocr.fake_adapter import create_fake_adapter
+    return create_fake_adapter(mode="clean")
+
+
+@pytest.fixture(scope="function")
+def fake_ocr_adapter_low_confidence():
+    """Fake OCR adapter returning low confidence results."""
+    from app.adapters.ocr.fake_adapter import create_fake_adapter
+    return create_fake_adapter(mode="low_confidence")
+
+
+@pytest.fixture(scope="function")
+def fake_ocr_adapter_empty():
+    """Fake OCR adapter returning no text."""
+    from app.adapters.ocr.fake_adapter import create_fake_adapter
+    return create_fake_adapter(mode="empty")
+
+
+@pytest.fixture(scope="function")
+def fake_ocr_adapter_raises():
+    """Fake OCR adapter that raises an exception."""
+    from app.adapters.ocr.fake_adapter import create_fake_adapter
+    return create_fake_adapter(mode="raises")
+
+
+@pytest.fixture(scope="function")
+def fake_ocr_adapter_timeout():
+    """Fake OCR adapter that times out."""
+    from app.adapters.ocr.fake_adapter import create_fake_adapter
+    return create_fake_adapter(mode="timeout")
 
 
 @pytest.fixture(scope="session")

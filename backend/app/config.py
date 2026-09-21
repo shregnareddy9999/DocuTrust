@@ -34,7 +34,7 @@ class Settings(BaseSettings):
             return [mime.strip() for mime in v.split(",") if mime.strip()]
         return v
 
-    OCR_ENGINE: Literal["paddleocr"] = "paddleocr"
+    OCR_ENGINE: Literal["paddleocr", "fake"] = "paddleocr"
     OCR_LANGUAGE: str = "en"
     OCR_TIMEOUT_SECONDS: int = 30
     LOW_CONFIDENCE_THRESHOLD: float = 0.70
