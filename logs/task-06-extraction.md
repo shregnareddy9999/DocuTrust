@@ -101,6 +101,12 @@ All-null extracted fields after Paddle 2.8.1 on the old samples happened because
 
 Do not loosen `map_ocr_to_fields` to accept garbled tokens. Fake OCR is now two-column label/value so default-suite mapping and verify can exercise the real mapper. Live Paddle token asserts are `@pytest.mark.integration` and skip when paddle is not importable.
 
+## 2026-09-22
+
+- Mapper unchanged. Fake e2e `test_upload_then_verify_runs_ocr_and_returns_terminal_status` now expects `VERIFIED_MATCH` and non-null `student_name` / `student_id` from labeled fake OCR.
+- Full suite this session: `cd backend && .\venv\Scripts\python.exe -m pytest -q --tb=short` ? `196 passed, 1 deselected in 10.89s`.
+- Integration still skipped on Python 3.14 (`No module named 'paddle'`).
+
 ## Known limitations at handoff
 
 - Task 05 still stores `extracted_fields_json="{}"` until something calls `extract_fields`. Verify and GET extraction will look empty unless Task 07 (or a test) runs the writer.
