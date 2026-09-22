@@ -55,5 +55,12 @@ The latest image is visually readable. Its behavior against real OCR has not bee
 - Regenerated all files under `backend/app/fixtures/sample_documents/` with `python -m app.fixtures.generate_samples` (venv). Layout, 22/34pt, two-column `MARGIN` / `MARGIN+340`, and `FIXTURES` values unchanged.
 - Live Paddle on these PNGs was not run here (Python 3.14, no paddle wheel).
 
+## 2026-09-22 — Regenerated samples again after diagnosis plan
+
+- `_font(22)` loads `FreeTypeFont` from `C:\Windows\Fonts\arialbd.ttf`.
+- Command: `cd backend && .\venv\Scripts\python.exe -m app.fixtures.generate_samples` — 12 files including the 11 required samples.
+- Visual check of `academic_certificate_match.png`: readable labels (`Student Name:`) and values (`Aarav Demo`), 1000×700, high contrast.
+- Document `37c9ce9304ad458cb433b22fc196ef29` was OCR'd against the **old** bitmap-default PNG. Re-upload the **new** PNG on Python 3.11 + Paddle 2.6.2 / 2.8.1; do not claim live rec on this 3.14 interpreter.
+
 ## Completion
 Task 03 is not yet marked complete. Final completion depends on the remaining specification review and confirmation that all acceptance criteria are satisfied.

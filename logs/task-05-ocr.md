@@ -148,9 +148,9 @@ cd backend && .venv\Scripts\python -m pytest tests/test_ocr_pipeline.py::TestOcr
 | Command | Last run | Result |
 |---------|----------|--------|
 | `cd backend && .venv\Scripts\python -m pytest -v --tb=no -q` | 2026-09-20 | 113 passed, 1 deselected |
-| `cd backend && .venv\Scripts\python -m pytest tests/test_ocr_pipeline.py -v` | 2026-09-20 | 15 passed, 1 deselected |
-| `cd backend && .venv\Scripts\python -m pytest tests/test_ocr_pipeline.py::TestOcrPipeline::test_no_paddleocr_import_in_default_suite -v` | 2026-09-20 | PASSED |
-| `cd backend && .venv\Scripts\python -m pytest tests/test_ocr_pipeline.py::TestOcrPipelineIntegration -v -m integration --collect-only` | 2026-09-20 | 1 collected (marked integration) |
+| `cd backend && .\venv\Scripts\python.exe -m pytest -q --tb=short` | 2026-09-22 | **196 passed, 1 deselected in 10.89s** |
+| `cd backend && .\venv\Scripts\python.exe -m pytest tests/test_ocr_pipeline.py tests/test_seed_registry.py tests/test_matching_rules.py tests/test_extraction.py -q --tb=short` | 2026-09-22 | **106 passed, 1 deselected in 6.91s** |
+| `cd backend && .\venv\Scripts\python.exe -m pytest tests/test_ocr_pipeline.py::TestOcrPipelineIntegration -m integration -rs` | 2026-09-22 | **1 skipped** (Python 3.14, `No module named 'paddle'`) |
 
 ---
 
@@ -166,7 +166,7 @@ Fixes in this adapter:
 - `parse_paddle_ocr_payload` handles `None` / `[]` / page `None` / malformed lines without inventing text.
 - Fake `clean` / `low_confidence` now emit two-column Task 03 labels+values so Task 06 can map without live Paddle. Engine strings are not hardcoded in the Paddle adapter.
 
-Live Paddle still skipped on Python 3.14.
+Live Paddle still skipped on Python 3.14. Exact skip: `paddleocr/paddle not importable on this interpreter (Python 3.14): No module named 'paddle'`. No live rec strings were invented. PaddlePaddle/PaddleOCR versions were **not** changed (still 2.6.2 / 2.8.1 on machines that have them).
 
 ## Known limitations at handoff
 
