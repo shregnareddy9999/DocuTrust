@@ -78,7 +78,7 @@ def process_document(document_id: str, session) -> ExtractionResult:
 | 2026-09-20 | `extracted_fields_json` = `{}` | Task 06 responsibility; this task only persists raw OCR | Yes |
 | 2026-09-20 | `LOW_CONFIDENCE_THRESHOLD` not read | Task 07 decision; this task passes confidence through unaltered | Yes |
 | 2026-09-20 | `extracted_fields_json` left empty for Task 06 | Task 06 owns extraction mapping | Yes |
-| 2026-09-20 | Dependencies: `paddlepaddle==2.6.1`, `paddleocr==2.8.1` | Compatible with Python 3.11 (required per ENVIRONMENT-REPORT) | Yes (requires verification on 3.11) |
+| 2026-09-20 | Dependencies: `paddlepaddle==2.6.2`, `paddleocr==2.8.1` | Compatible with Python 3.11 (required per ENVIRONMENT-REPORT) | Yes (requires verification on 3.11) |
 
 ---
 
@@ -118,7 +118,7 @@ cd backend && .venv\Scripts\python -m pytest -v --tb=no -q
 - Normalizes PaddleOCR quadrilateral `[[x1,y1],[x2,y2],[x3,y3],[x4,y4]]` → `(min(x), min(y), max(x), max(y))`
 - Reading order: top-to-bottom (y1), then left-to-right (x1)
 - Engine version captured at runtime from `paddleocr.__version__`
-- Added dependencies to `requirements.txt`: `paddlepaddle==2.6.1`, `paddleocr==2.8.1`
+- Added dependencies to `requirements.txt`: `paddlepaddle==2.6.2`, `paddleocr==2.8.1`
 - Integration test already present in `test_ocr_pipeline.py` marked `@pytest.mark.integration`
 
 **Verified by running:**
@@ -128,8 +128,44 @@ cd backend && .venv\Scripts\python -m pytest -v --tb=no -q
 cd backend && .venv\Scripts\python -m pytest tests/test_ocr_pipeline.py::TestOcrPipeline::test_no_paddleocr_import_in_default_suite -v
 # PASSED
 ```
+## Runtime Compatibility Verification
 
+### 2026-09-21 — Real PaddleOCR runtime verification
+
+The default development environment uses Python 3.14.6, which does not have a compatible PaddlePaddle 2.6.x wheel.
+
+A separate Python 3.12.10 environment was therefore created specifically for real PaddleOCR verification.
+
+Verified runtime:
+
+- Python: `3.12.10`
+- PaddlePaddle: `2.6.2`
+- PaddleOCR: `2.8.1`
+- Platform: Windows `win_amd64`
+- Environment: `backend\.venv-paddle312`
+
+The real integration test was executed:
+
+```bash
+python -m pytest tests/test_ocr_pipeline.py::TestOcrPipelineIntegration::test_real_paddleocr_academic_certificate_match -m integration -v -s
+
+Result:
+
+```text
+1 passed
 ---
+
+```markdown
+The complete backend test suite was also executed in the verified Python 3.12 environment:
+
+```bash
+python -m pytest -q
+
+Result:
+
+```text
+113 passed, 1 deselected
+
 
 ## Blockers and open questions
 
@@ -137,7 +173,7 @@ cd backend && .venv\Scripts\python -m pytest tests/test_ocr_pipeline.py::TestOcr
 |---|----------|----------|--------|----------|
 | 1 | BBox format | 2026-09-20 | `(x1, y1, x2, y2)` per task constraint | ✅ |
 | 2 | OpenCV for preprocessing? | 2026-09-20 | No — Pillow only per constraints | ✅ |
-| 3 | PaddleOCR versions | 2026-09-20 | `paddlepaddle==2.6.1`, `paddleocr==2.8.1` (Python 3.11 compatible) | ✅ (unverified on 3.11) |
+| 3 | PaddleOCR versions | 2026-09-20 | `paddlepaddle==2.6.2`, `paddleocr==2.8.1` (Python 3.11 compatible) | ✅ (unverified on 3.11) |
 | 4 | `OCR_ENGINE=fake` config support | 2026-09-20 | Approved: modified `config.py` Literal | ✅ |
 | 5 | Development log scope | 2026-09-20 | Approved: created `logs/task-05-ocr.md` | ✅ |
 
@@ -170,10 +206,10 @@ Live Paddle still skipped on Python 3.14.
 
 ## Known limitations at handoff
 
-- **Real PaddleOCR execution NOT verified** — Current machine uses Python 3.14.6; `docs/ENVIRONMENT-REPORT.md` confirms no PaddlePaddle wheel exists for Python 3.14. Integration test is implemented but will only run on a Python 3.11.x machine with working PaddlePaddle.
+- **Real PaddleOCR execution verified in a separate Python 3.12.10 environment** — The default development environment uses Python 3.14.6 and cannot run PaddlePaddle 2.6.x. Real PaddleOCR verification was successfully completed using Python 3.12.10 with PaddlePaddle 2.6.2 and PaddleOCR 2.8.1.
 - **No degraded-sample confidence values recorded** — Requires real PaddleOCR run on `academic_certificate_degraded.png` (Task 03/07 need these).
 - **No single-page timing recorded** — NFR-09 budget (15s total chain) not measured; requires real OCR run.
-- **Dependencies pinned by version-series compatibility** — `paddlepaddle==2.6.1` + `paddleocr==2.8.1` assumed correct for Python 3.11; not install-tested on this machine.
+- **Dependencies verified on Python 3.12.10** — `paddlepaddle==2.6.2` + `paddleocr==2.8.1` were installed and successfully exercised by the real integration test in the dedicated Python 3.12.10 environment.
 - **Development log created** — `logs/task-05-ocr.md` created per AGENTS.md requirement with explicit approval (scope conflict resolved).
 
 ---
@@ -193,5 +229,5 @@ Live Paddle still skipped on Python 3.14.
 **Python 3.14.6 cannot run real PaddleOCR.** Per `docs/ENVIRONMENT-REPORT.md`:
 - No PaddlePaddle wheel for Python 3.14
 - PaddleOCR 3.x imports but fails at runtime without PaddlePaddle
-- **Demo machine must be Python 3.11.x** with verified PaddlePaddle/PaddleOCR installation
+- **Real PaddleOCR requires a compatible Python environment** — The current Python 3.14.6 environment cannot run PaddlePaddle 2.6.x. The verified working environment for this task is Python 3.12.10 with PaddlePaddle 2.6.2 and PaddleOCR 2.8.1.
 - Integration test `test_real_paddleocr_academic_certificate_match` is correctly marked `@pytest.mark.integration` and excluded from default suite
