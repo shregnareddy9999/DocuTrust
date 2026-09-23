@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.repositories import registry_repo, review_repo, verification_repo
+from app.repositories import documents_repo, registry_repo, review_repo, verification_repo
 from app.services.extraction_service import UnknownCategoryError
 from app.services.review_service import (
     EmptyReviewerRefError,
@@ -195,6 +195,8 @@ def post_review(
         )
 
     except Exception as exc:
+        # Review action is committed before re-evaluation. Roll back only
+        # uncommitted re-evaluation work; do not erase the audit row.
         db.rollback()
         _http_error(
             500,
@@ -259,6 +261,8 @@ def get_verification(
         db,
         row.id,
     )
+    # Repo is newest-first (Task 02). API contract is oldest -> newest.
+    reviews = list(reversed(reviews))
 
     review_actions = []
 
@@ -321,6 +325,49 @@ def get_verification(
         "created_at": _iso_z(
             row.created_at
         ),
+    }
+
+
+@router.get("/documents/{document_id}/verifications")
+def get_document_verifications(
+    document_id: str,
+    db: Session = Depends(get_db),
+):
+    document = documents_repo.get_by_id(db, document_id)
+    if document is None:
+        _http_error(
+            404,
+            "DOCUMENT_NOT_FOUND",
+            "Document not found",
+        )
+
+    rows = verification_repo.list_for_document(db, document_id)
+    latest = verification_repo.get_latest_for_document(db, document_id)
+    current_id = latest.id if latest is not None else None
+
+    verifications = []
+    for row in rows:
+        status = (
+            row.status.value
+            if hasattr(row.status, "value")
+            else str(row.status)
+        )
+        verifications.append(
+            {
+                "verification_id": row.id,
+                "status": status,
+                "is_current": row.id == current_id,
+                "supersedes_verification_id": row.supersedes_verification_id,
+                "review_action_count": len(
+                    review_repo.list_for_verification(db, row.id)
+                ),
+                "created_at": _iso_z(row.created_at),
+            }
+        )
+
+    return {
+        "document_id": document_id,
+        "verifications": verifications,
     }
 
 

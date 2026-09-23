@@ -52,16 +52,6 @@ def _parse_json_object(raw: str | None) -> dict:
     return value if isinstance(value, dict) else {}
 
 
-def _parse_json_list(raw: str | None) -> list:
-    if not raw:
-        return []
-    try:
-        value = json.loads(raw)
-    except (json.JSONDecodeError, TypeError):
-        return []
-    return value if isinstance(value, list) else []
-
-
 def _document_category(session: Session, document_id: str) -> str:
     document = get_document_by_id(session, document_id)
     if document is None:
@@ -75,6 +65,10 @@ def _document_category(session: Session, document_id: str) -> str:
 
 def _schema_field_names(category: str) -> set[str]:
     return {field.name for field in get_schema(category)}
+
+
+def _match_field_names(category: str) -> set[str]:
+    return {field.name for field in get_schema(category) if field.match_field}
 
 
 def _entry_value(entry):
@@ -282,98 +276,82 @@ def review_verification(
     )
 
     review_repo.create(session, review)
+    # Audit row must survive a later re-evaluation failure (Task 08 Req 2).
+    session.commit()
+    session.refresh(review)
+    session.refresh(reviewed)
 
     if review_action == ReviewActionType.UNRESOLVED:
-        session.commit()
-        session.refresh(review)
         return review, None
 
-    category = _document_category(session, reviewed.document_id)
+    try:
+        new_row = _reevaluate_after_review(
+            session,
+            reviewed,
+            review_action,
+            corrections,
+        )
+        session.commit()
+        session.refresh(review)
+        session.refresh(new_row)
+        return review, new_row
+    except Exception:
+        session.rollback()
+        session.refresh(review)
+        raise
 
+
+def _reevaluate_after_review(
+    session: Session,
+    reviewed: VerificationResult,
+    review_action: ReviewActionType,
+    corrections: dict,
+) -> VerificationResult:
+    category = _document_category(session, reviewed.document_id)
     extraction = get_latest_successful_for_document(
         session,
         reviewed.document_id,
     )
-
     if extraction is None:
-        session.commit()
-        session.refresh(review)
-        return review, reviewed
+        raise RuntimeError("Extraction is not available for re-evaluation")
 
     stored_fields = _parse_json_object(extraction.extracted_fields_json)
 
     if review_action == ReviewActionType.ACCEPT:
-        reason_codes = _parse_json_list(reviewed.reason_codes_json)
-
-        confirmed = {
-            code.split(":", 1)[1]
-            for code in reason_codes
-            if isinstance(code, str) and code.startswith("LOW_CONFIDENCE:")
-        }
-
-        if not confirmed:
-            session.commit()
-            session.refresh(review)
-            return review, reviewed
-
         effective_fields = _effective_fields(stored_fields, {})
-        match_result = _build_match_result(
-            session,
-            category,
-            effective_fields,
+        confirmed = _match_field_names(category)
+        extraction_status = (
+            extraction.status.value
+            if hasattr(extraction.status, "value")
+            else str(extraction.status)
         )
-
-        outcome = evaluate(
-            extraction.status.value,
-            effective_fields,
-            match_result,
-            get_schema(category),
-            settings.LOW_CONFIDENCE_THRESHOLD,
-            confidence_confirmed_fields=confirmed,
-        )
-
     else:
         updated_extraction = _update_extraction_with_correction(
             session,
             reviewed.document_id,
             corrections,
         )
-
         stored_fields = _parse_json_object(
             updated_extraction.extracted_fields_json
         )
-
-        effective_fields = _effective_fields(
-            stored_fields,
-            corrections,
+        effective_fields = _effective_fields(stored_fields, corrections)
+        confirmed = set(corrections)
+        extraction_status = (
+            updated_extraction.status.value
+            if hasattr(updated_extraction.status, "value")
+            else str(updated_extraction.status)
         )
 
-        match_result = _build_match_result(
-            session,
-            category,
-            effective_fields,
-        )
-
-        outcome = evaluate(
-            updated_extraction.status.value,
-            effective_fields,
-            match_result,
-            get_schema(category),
-            settings.LOW_CONFIDENCE_THRESHOLD,
-            confidence_confirmed_fields=set(corrections),
-        )
-
-    new_row = _persist_verification(
-        session,
-        reviewed,
-        outcome,
+    match_result = _build_match_result(session, category, effective_fields)
+    outcome = evaluate(
+        extraction_status,
+        effective_fields,
+        match_result,
+        get_schema(category),
+        settings.LOW_CONFIDENCE_THRESHOLD,
+        confidence_confirmed_fields=confirmed,
     )
-
-    session.commit()
-    session.refresh(review)
-    session.refresh(new_row)
-
-    return review, new_row
+    return _persist_verification(session, reviewed, outcome)
 
 
 
