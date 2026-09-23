@@ -273,19 +273,32 @@ def evaluate(
     match_result: MatchResult,
     schema: list[FieldDef],
     low_confidence_threshold: float,
+    confidence_confirmed_fields: set[str] | None = None,
 ) -> VerificationOutcome:
     """
     Status precedence from docs/verification-rules.md. First match wins.
 
     1. OCR/extraction failed → PROCESSING_FAILED
-    2. Required field missing OR match-field confidence below threshold → REVIEW_REQUIRED
+    2. Required field missing OR match-field confidence below threshold
+       → REVIEW_REQUIRED
     3. No applicable registry record → NO_TRUSTED_RECORD
-    4. Applicable record with any failed match-field comparison → INTEGRITY_MISMATCH
-    5. Applicable record with all match-field comparisons passing → VERIFIED_MATCH
+    4. Applicable record with any failed match-field comparison
+       → INTEGRITY_MISMATCH
+    5. Applicable record with all match-field comparisons passing
+       → VERIFIED_MATCH
 
-    Registry data errors and rule exceptions are PROCESSING_FAILED, never a mismatch.
+    Reviewer-confirmed fields can be excluded from the low-confidence
+    check without modifying their original stored OCR confidence.
     """
-    rule_results = run_rules(extracted_fields, match_result.record, schema)
+
+    confidence_confirmed_fields = confidence_confirmed_fields or set()
+
+    rule_results = run_rules(
+        extracted_fields,
+        match_result.record,
+        schema,
+    )
+
     comparisons = list(match_result.comparisons)
     record = match_result.record
 
@@ -298,12 +311,16 @@ def evaluate(
             registry_record=None,
         )
 
-    if any(result.reason.endswith("raised an exception.") for result in rule_results):
+    if any(
+        result.reason.endswith("raised an exception.")
+        for result in rule_results
+    ):
         failed = next(
             result.rule_id
             for result in rule_results
             if result.reason.endswith("raised an exception.")
         )
+
         return VerificationOutcome(
             status=VerificationStatus.PROCESSING_FAILED,
             field_comparisons=comparisons,
@@ -321,15 +338,32 @@ def evaluate(
             registry_record=None,
         )
 
-    missing = _missing_required(extracted_fields, schema)
-    low_confidence = _low_confidence_fields(
+    missing = _missing_required(
         extracted_fields,
         schema,
-        low_confidence_threshold,
     )
+
+    low_confidence = [
+        field
+        for field in _low_confidence_fields(
+            extracted_fields,
+            schema,
+            low_confidence_threshold,
+        )
+        if field not in confidence_confirmed_fields
+    ]
+
     if missing or low_confidence:
-        codes: list[str] = [f"MISSING_REQUIRED:{name}" for name in missing]
-        codes.extend(f"LOW_CONFIDENCE:{name}" for name in low_confidence)
+        codes: list[str] = [
+            f"MISSING_REQUIRED:{name}"
+            for name in missing
+        ]
+
+        codes.extend(
+            f"LOW_CONFIDENCE:{name}"
+            for name in low_confidence
+        )
+
         return VerificationOutcome(
             status=VerificationStatus.REVIEW_REQUIRED,
             field_comparisons=comparisons,
@@ -348,14 +382,20 @@ def evaluate(
         )
 
     failed_comparisons = [
-        row["field"] for row in comparisons if not row.get("matched")
+        row["field"]
+        for row in comparisons
+        if not row.get("matched")
     ]
+
     if failed_comparisons:
         return VerificationOutcome(
             status=VerificationStatus.INTEGRITY_MISMATCH,
             field_comparisons=comparisons,
             rule_results=rule_results,
-            reason_codes=[f"FIELD_MISMATCH:{name}" for name in failed_comparisons],
+            reason_codes=[
+                f"FIELD_MISMATCH:{name}"
+                for name in failed_comparisons
+            ],
             registry_record=record,
         )
 
