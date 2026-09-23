@@ -78,7 +78,7 @@ def process_document(document_id: str, session) -> ExtractionResult:
 | 2026-09-20 | `extracted_fields_json` = `{}` | Task 06 responsibility; this task only persists raw OCR | Yes |
 | 2026-09-20 | `LOW_CONFIDENCE_THRESHOLD` not read | Task 07 decision; this task passes confidence through unaltered | Yes |
 | 2026-09-20 | `extracted_fields_json` left empty for Task 06 | Task 06 owns extraction mapping | Yes |
-| 2026-09-20 | Dependencies: `paddlepaddle==2.6.2`, `paddleocr==2.8.1` | Compatible with Python 3.11 (required per ENVIRONMENT-REPORT) | Yes (requires verification on 3.11) |
+| 2026-09-20 | Dependencies: `paddlepaddle==2.6.2`, `paddleocr==2.8.1` | Pinned per task/environment requirements; real runtime verified on Python 3.12.10 | Yes |
 
 ---
 
@@ -153,9 +153,9 @@ Result:
 
 ```text
 1 passed
----
 
-```markdown
+
+
 The complete backend test suite was also executed in the verified Python 3.12 environment:
 
 ```bash
@@ -166,6 +166,27 @@ Result:
 ```text
 113 passed, 1 deselected
 
+### Manual API and OCR Pipeline Verification
+
+- Started the backend using the Python 3.12.10 PaddleOCR environment.
+- Confirmed `/api/v1/health` reported `ocr_adapter: paddleocr`.
+- Uploaded a real academic certificate image through `POST /api/v1/documents`.
+- Confirmed the document was initially persisted with `processing_state = UPLOADED`.
+- Confirmed `GET /api/v1/documents/{id}/extraction` returned `EXTRACTION_NOT_READY` before OCR processing.
+- Triggered `POST /api/v1/documents/{id}/verify`, which invoked the OCR pipeline.
+- Confirmed the document transitioned to `OCR_DONE`.
+- Confirmed the persisted extraction had:
+  - `status = SUCCEEDED`
+  - `engine_name = paddleocr`
+  - `engine_version = 2.8.1`
+  - `14` OCR regions
+- Confirmed real OCR text was extracted from the certificate.
+
+### Downstream Observation
+
+Manual end-to-end verification showed that OCR completed successfully and produced readable text, while the downstream structured field extraction produced null field values.
+
+This behavior occurs after the Task 05 OCR stage. No Task 05 implementation changes were made as part of this observation because structured field extraction belongs to the downstream extraction/mapping stage.
 
 ## Blockers and open questions
 
@@ -173,7 +194,7 @@ Result:
 |---|----------|----------|--------|----------|
 | 1 | BBox format | 2026-09-20 | `(x1, y1, x2, y2)` per task constraint | ✅ |
 | 2 | OpenCV for preprocessing? | 2026-09-20 | No — Pillow only per constraints | ✅ |
-| 3 | PaddleOCR versions | 2026-09-20 | `paddlepaddle==2.6.2`, `paddleocr==2.8.1` (Python 3.11 compatible) | ✅ (unverified on 3.11) |
+| 3 | PaddleOCR versions | 2026-09-20 | `paddlepaddle==2.6.2`, `paddleocr==2.8.1` | ✅ (verified on Python 3.12.10) |
 | 4 | `OCR_ENGINE=fake` config support | 2026-09-20 | Approved: modified `config.py` Literal | ✅ |
 | 5 | Development log scope | 2026-09-20 | Approved: created `logs/task-05-ocr.md` | ✅ |
 
