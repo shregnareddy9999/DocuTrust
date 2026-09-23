@@ -22,3 +22,5 @@ pypdfium2==4.28.0
 paddlepaddle==2.6.2
 # PaddleOCR compatible with PaddlePaddle 2.6.x
 paddleocr==2.8.1
+# Blockchain adapter for Task 09
+web3>=7.0,<8.0

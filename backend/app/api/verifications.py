@@ -371,3 +371,73 @@ def get_document_verifications(
     }
 
 
+
+# Task 09 — Blockchain status endpoint
+@router.get("/verifications/{verification_id}/blockchain")
+def get_verification_blockchain(
+    verification_id: str,
+    db: Session = Depends(get_db),
+):
+    verification = verification_repo.get_by_id(db, verification_id)
+
+    if verification is None:
+        _http_error(404, "VERIFICATION_NOT_FOUND", "Verification not found")
+
+    record = blockchain_repo.get_active_for_verification(db, verification_id)
+
+    if record is None:
+        records = blockchain_repo.get_by_verification_id(db, verification_id)
+        record = records[0] if records else None
+
+    if record is None:
+        return {
+            "verification_id": verification_id,
+            "recording_status": RecordingStatus.NOT_REQUESTED.value,
+            "chain_id": None,
+            "contract_address": None,
+            "transaction_hash": None,
+            "event_digest": None,
+            "submitted_at": None,
+            "confirmed_at": None,
+            "error_code": None,
+        }
+
+    status = (
+        record.recording_status.value
+        if hasattr(record.recording_status, "value")
+        else str(record.recording_status)
+    )
+
+    error_code = (
+        record.error_code.value
+        if record.error_code is not None and hasattr(record.error_code, "value")
+        else record.error_code
+    )
+
+    if status == RecordingStatus.NOT_REQUESTED.value:
+        return {
+            "verification_id": verification_id,
+            "recording_status": status,
+            "chain_id": None,
+            "contract_address": None,
+            "transaction_hash": None,
+            "event_digest": None,
+            "submitted_at": None,
+            "confirmed_at": None,
+            "error_code": None,
+        }
+
+    return {
+        "verification_id": verification_id,
+        "recording_status": status,
+        "chain_id": record.chain_id,
+        "contract_address": record.contract_address,
+        "transaction_hash": record.transaction_hash,
+        "event_digest": record.event_digest,
+        "submitted_at": _iso_z(record.submitted_at) if record.submitted_at else None,
+        "confirmed_at": _iso_z(record.confirmed_at) if record.confirmed_at else None,
+        "error_code": error_code,
+    }
+
+from app.repositories import blockchain_repo
+from app.models.blockchain import RecordingStatus
