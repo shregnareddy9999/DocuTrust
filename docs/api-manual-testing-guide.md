@@ -42,14 +42,21 @@ curl -X POST http://127.0.0.1:8000/api/v1/documents/<document_id>/verify
 ```
 Save `verification_id`.
 
-## 6. Read the verification result
+## 6. Read the verification result and history
 
 ```bash
 curl http://127.0.0.1:8000/api/v1/verifications/<verification_id>
+curl http://127.0.0.1:8000/api/v1/documents/<document_id>/verifications
 ```
 Expected for the `_match` fixture: `status: "VERIFIED_MATCH"`.
 Expected for the `_mismatch` fixture: `status: "INTEGRITY_MISMATCH"` with a populated
 `field_comparisons` entry showing `matched: false`.
+History is newest first; exactly one entry has `is_current: true`.
+`review_actions` on a single verification are oldest first.
+
+`POST .../verify` runs OCR when no successful extraction exists (D-19). It returns a
+terminal status; it does not return `PENDING`. `409 EXTRACTION_NOT_READY` is only for
+`OCR_IN_PROGRESS`.
 
 ## 7. Submit a review correction
 
@@ -80,7 +87,8 @@ useful for testing the backend without starting the Hardhat node.
 
 - Upload a `.txt` file → expect `415 UNSUPPORTED_MEDIA_TYPE`.
 - Upload a file over `MAX_UPLOAD_MB` → expect `413 FILE_TOO_LARGE`.
-- Verify a `document_id` with no successful extraction yet → expect `409 EXTRACTION_NOT_READY`.
+- Verify a `document_id` while OCR is mid-run (`OCR_IN_PROGRESS`) → expect `409 EXTRACTION_NOT_READY`.
+  Uploading then immediately verifying a new document does **not** 409: verify runs OCR first.
 - Fetch a verification with a random UUID → expect `404 VERIFICATION_NOT_FOUND`.
 - Stop the local Hardhat node, then run step 5 on a new document with `BLOCKCHAIN_ENABLED=true` →
   verification status should still resolve normally; `blockchain` endpoint should show
