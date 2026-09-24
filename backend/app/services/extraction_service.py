@@ -98,14 +98,21 @@ def _owning_field(text: str, schema: list[FieldDef]) -> FieldDef | None:
 
 
 def _remainder_after_label(text: str, label: str) -> str | None:
-    """Original OCR remainder after a matched label in the same region."""
+    """Return a meaningful OCR value remaining after a matched label."""
     normalized_label = _normalize(label)
     label_pattern = re.escape(normalized_label).replace(r"\ ", r"\s+")
     match = re.search(label_pattern, text, flags=re.IGNORECASE)
     if match is None:
         return None
+
     value = text[match.end() :].strip()
     value = value.lstrip(":=-").strip()
+
+    # Ignore punctuation-only OCR artifacts attached to labels.
+    # Example: "Date of Birth:." -> no inline value.
+    if value and not re.search(r"[A-Za-z0-9]", value):
+        return None
+
     return value or None
 
 
