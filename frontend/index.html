@@ -12,9 +12,28 @@
       rel="stylesheet"
     />
     <title>DocuTrust · Verification Console</title>
+    <script>
+      console.log('[index.html] Page loading');
+      window.addEventListener('error', (e) => {
+        console.error('[index.html] Global error:', e.error?.message || e.message, e.filename, e.lineno);
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        console.error('[index.html] Unhandled rejection:', e.reason);
+      });
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="display: grid; place-items: center; min-height: 100vh; background: #0f172a; color: #fff; font-family: system-ui;">
+        <div style="text-align: center;">
+          <div style="width: 48px; height: 48px; border: 3px solid #fbbf24; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+          <p>Loading DocuTrust...</p>
+        </div>
+        <style>
+          @keyframes spin { to { transform: rotate(360deg); } }
+        </style>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

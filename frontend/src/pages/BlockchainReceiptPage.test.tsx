@@ -1,16 +1,23 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { BlockchainReceiptPage } from './BlockchainReceiptPage';
 import { renderWithRouter } from '../test/render';
 import { server } from '../test/setup';
-import { setMockConfig } from '../mocks/config';
-import { STUB_VERIFICATION_ID } from '../mocks/handlers';
+import { setMockConfig, resetMockConfig } from '../mocks/config';
+import { resetMockCounters } from '../mocks/handlers';
 
-const ROUTE = `/verifications/${STUB_VERIFICATION_ID}/blockchain`;
+const TEST_VERIFICATION_ID = 'ver-demo-0001';
+const ROUTE = `/verifications/${TEST_VERIFICATION_ID}/blockchain`;
 const PATH = '/verifications/:verificationId/blockchain';
 
 describe('BlockchainReceiptPage', () => {
+  beforeEach(() => {
+    resetMockConfig();
+    resetMockCounters();
+    server.resetHandlers();
+  });
+
   it('renders a confirmed receipt with hash, chain and timestamps', async () => {
     renderWithRouter(<BlockchainReceiptPage />, { route: ROUTE, path: PATH });
     expect(await screen.findByText('Verification outcome recorded on-chain')).toBeInTheDocument();
@@ -67,7 +74,7 @@ describe('BlockchainReceiptPage', () => {
 
   it('shows the required empty-state copy when no record exists', async () => {
     server.use(
-      http.get(`*/api/v1/verifications/${STUB_VERIFICATION_ID}/blockchain`, () => HttpResponse.json(null))
+      http.get(`*/api/v1/verifications/${TEST_VERIFICATION_ID}/blockchain`, () => HttpResponse.json(null))
     );
     renderWithRouter(<BlockchainReceiptPage />, { route: ROUTE, path: PATH });
     expect(await screen.findByText('No blockchain record available')).toBeInTheDocument();

@@ -1,14 +1,23 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { getDocumentTypes } from '../api/documentTypes';
 import { uploadDocument } from '../api/documents';
 import { startVerification, getBlockchain } from '../api/verifications';
 import { ApiError } from '../api/client';
 import { server } from '../test/setup';
-import { setMockConfig } from '../mocks/config';
-import { STUB_DOCUMENT_ID, STUB_VERIFICATION_ID } from '../mocks/handlers';
+import { setMockConfig, resetMockConfig } from '../mocks/config';
+import { resetMockCounters } from '../mocks/handlers';
+
+const TEST_DOCUMENT_ID = 'doc-demo-0001';
+const TEST_VERIFICATION_ID = 'ver-demo-0001';
 
 describe('API client', () => {
+  beforeEach(() => {
+    resetMockConfig();
+    resetMockCounters();
+    server.resetHandlers();
+  });
+
   it('parses the error envelope into a typed ApiError', async () => {
     server.use(
       http.post('*/api/v1/documents', () =>
@@ -53,20 +62,20 @@ describe('API client', () => {
   });
 
   it('returns a verification result from POST /documents/{id}/verify', async () => {
-    const result = await startVerification(STUB_DOCUMENT_ID);
-    expect(result.verification_id).toBe(STUB_VERIFICATION_ID);
+    const result = await startVerification(TEST_DOCUMENT_ID);
+    expect(result.verification_id).toBe(TEST_VERIFICATION_ID);
     expect(result.status).toBe('VERIFIED_MATCH');
   });
 
   it('returns a blockchain record from GET /verifications/{id}/blockchain', async () => {
-    const record = await getBlockchain(STUB_VERIFICATION_ID);
+    const record = await getBlockchain(TEST_VERIFICATION_ID);
     expect(record.recording_status).toBe('CONFIRMED');
     expect(record.transaction_hash).toMatch(/^0x/);
   });
 
   it('supports chain mode flags through the mock config', async () => {
     setMockConfig({ chain: 'FAILED:RPC_UNAVAILABLE' });
-    const record = await getBlockchain(STUB_VERIFICATION_ID);
+    const record = await getBlockchain(TEST_VERIFICATION_ID);
     expect(record.recording_status).toBe('FAILED');
     expect(record.error_code).toBe('RPC_UNAVAILABLE');
     expect(record.transaction_hash).toBeNull();

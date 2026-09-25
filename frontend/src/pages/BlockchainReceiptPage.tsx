@@ -99,13 +99,13 @@ export function BlockchainReceiptPage() {
           <h2>Receipt details</h2>
           <ReceiptRow label="Verification ID" value={blockchain.verification_id} />
           {blockchain.transaction_hash ? (
-            <ReceiptRow label="Transaction hash" value={shrinkHash(blockchain.transaction_hash)} />
+            <ReceiptRow label="Transaction hash" value={blockchain.transaction_hash} />
           ) : null}
           {blockchain.chain_id !== null ? <ReceiptRow label="Chain ID" value={String(blockchain.chain_id)} /> : null}
           {blockchain.contract_address ? (
-            <ReceiptRow label="Contract address" value={shrinkHash(blockchain.contract_address)} />
+            <ReceiptRow label="Contract address" value={blockchain.contract_address} />
           ) : null}
-          {blockchain.event_digest ? <ReceiptRow label="Event digest" value={shrinkHash(blockchain.event_digest)} /> : null}
+          {blockchain.event_digest ? <ReceiptRow label="Event digest" value={blockchain.event_digest} /> : null}
           {blockchain.submitted_at ? (
             <ReceiptRow label="Submitted at" value={new Date(blockchain.submitted_at).toLocaleString()} />
           ) : null}
@@ -151,9 +151,4 @@ function ReceiptRow({ label, value }: { label: string; value: string }) {
 
 function getErrorCode(blockchain: BlockchainResponse): BlockchainResponse['error_code'] {
   return blockchain.error_code;
-}
-
-function shrinkHash(hash: string): string {
-  if (hash.length <= 20) return hash;
-  return `${hash.slice(0, 10)}…${hash.slice(-8)}`;
 }

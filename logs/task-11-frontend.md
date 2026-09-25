@@ -53,6 +53,11 @@ The mock-mode handoff for rehearsal:
 
 ## Progress
 
+### 2026-09-25 (splash, demo login, nav, review redirect, API root)
+- Did: Frontend-only splash (~2.6s CSS animation) then demo login/register (no backend auth; D-11 unchanged). Sidebar: "Upload Document"; removed Help/About/Demo Mode from nav; active item highlighting; back/forward in the topbar. After `REVIEW_REQUIRED` or `INTEGRITY_MISMATCH`, upload/detail navigate to the review page. Vite default opens `/` and proxies `/api` to port 8000. API client treats HTML responses as a reachable-API error. `recentDocuments` hydrates with `allSettled` so one bad id does not empty the queue. Backend: HTML landing at `GET /` plus CORS for localhost/127.0.0.1:5173.
+- Verified: see session test run below.
+- Next: remaining UX polish after the user reviews this pass. No commit/push.
+
 ### 2026-09-24 (capstone session — reskin + audit)
 - Did: Rewrote `frontend/src/styles.css` to the reference console design (all classes preserved).
   Added Google Fonts (Geist/Inter/JetBrains Mono) + console title to `frontend/index.html`.

@@ -14,6 +14,16 @@ import { safeMessage } from '../utils/messages';
 import { STATUS_EXPLANATIONS } from '../utils/resultCopy';
 import { buildFieldLabels, fieldLabel } from '../utils/fields';
 
+function getUserFriendlyRuleMessage(ruleId: string, passed: boolean, reason?: string): string {
+  if (ruleId === 'required_field_presence') {
+    return passed ? 'All required fields are present' : 'Some required fields are missing';
+  }
+  if (ruleId === 'field_match') {
+    return passed ? 'All key fields match the demo registry record' : (reason || 'One or more key fields do not match the demo registry');
+  }
+  return passed ? 'Passed' : (reason || 'Failed');
+}
+
 export function VerificationResultPage() {
   const { verificationId = '' } = useParams();
   const navigate = useNavigate();
@@ -120,7 +130,7 @@ export function VerificationResultPage() {
           <h2>Why this result</h2>
           {verification.rule_results.map((rule) => (
             <div key={rule.rule_id} className={rule.passed ? 'rule-result rule-result--pass' : 'rule-result rule-result--fail'}>
-              <strong>{rule.rule_id}</strong> — {rule.reason || (rule.passed ? 'Passed' : 'Failed')}
+              <strong>{getUserFriendlyRuleMessage(rule.rule_id, rule.passed, rule.reason)}</strong>
             </div>
           ))}
         </section>

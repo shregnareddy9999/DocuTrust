@@ -1,16 +1,23 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { VerificationResultPage } from './VerificationResultPage';
 import { renderWithRouter } from '../test/render';
 import { server } from '../test/setup';
-import { setMockConfig } from '../mocks/config';
-import { STUB_VERIFICATION_ID } from '../mocks/handlers';
+import { setMockConfig, resetMockConfig } from '../mocks/config';
+import { resetMockCounters } from '../mocks/handlers';
 
-const ROUTE = `/verifications/${STUB_VERIFICATION_ID}`;
+const TEST_VERIFICATION_ID = 'ver-demo-0001';
+const ROUTE = `/verifications/${TEST_VERIFICATION_ID}`;
 const PATH = '/verifications/:verificationId';
 
 describe('VerificationResultPage', () => {
+  beforeEach(() => {
+    resetMockConfig();
+    resetMockCounters();
+    server.resetHandlers();
+  });
+
   it('renders the verification status badge and a separate blockchain badge', async () => {
     renderWithRouter(<VerificationResultPage />, { route: ROUTE, path: PATH });
     expect(await screen.findByText('Matched our synthetic demo reference')).toBeInTheDocument();
@@ -72,7 +79,7 @@ describe('VerificationResultPage', () => {
   });
 
   it('shows a network error state with retry', async () => {
-    server.use(http.get(`*/api/v1/verifications/${STUB_VERIFICATION_ID}`, () => HttpResponse.error()));
+    server.use(http.get(`*/api/v1/verifications/${TEST_VERIFICATION_ID}`, () => HttpResponse.error()));
     renderWithRouter(<VerificationResultPage />, { route: ROUTE, path: PATH });
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
@@ -84,10 +91,10 @@ describe('VerificationResultPage', () => {
       return HttpResponse.json({});
     };
     server.use(
-      http.get(`*/api/v1/verifications/${STUB_VERIFICATION_ID}`, async () => {
+      http.get(`*/api/v1/verifications/${TEST_VERIFICATION_ID}`, async () => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         return HttpResponse.json({
-          verification_id: STUB_VERIFICATION_ID,
+          verification_id: TEST_VERIFICATION_ID,
           document_id: 'doc-demo-0001',
           status: 'VERIFIED_MATCH',
           registry_record_key: 'DEMO-STU-001',
@@ -102,10 +109,10 @@ describe('VerificationResultPage', () => {
       })
     );
     server.use(
-      http.get(`*/api/v1/verifications/${STUB_VERIFICATION_ID}/blockchain`, delayedJson)
+      http.get(`*/api/v1/verifications/${TEST_VERIFICATION_ID}/blockchain`, delayedJson)
     );
     server.use(
-      http.get(`*/api/v1/verifications/${STUB_VERIFICATION_ID}/documents`, delayedJson)
+      http.get(`*/api/v1/verifications/${TEST_VERIFICATION_ID}/documents`, delayedJson)
     );
     renderWithRouter(<VerificationResultPage />, { route: ROUTE, path: PATH });
     expect(await screen.findByText('Loading verification result…')).toBeInTheDocument();

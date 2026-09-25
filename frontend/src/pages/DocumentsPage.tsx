@@ -38,8 +38,8 @@ export function DocumentsPage() {
         <p className="page-intro">Documents opened in this browser session.</p>
         <EmptyState
           icon={<DocumentsIcon />}
-          title="No documents yet"
-          message="Verify a document to add it to this list."
+          title={<strong>No documents uploaded, please upload</strong>}
+          message=""
           action={
             <Link to="/verify" className="button button--primary">
               Verify a document
@@ -70,6 +70,7 @@ export function DocumentsPage() {
                   <th>Category</th>
                   <th>Uploaded</th>
                   <th>Current outcome</th>
+                  <th>Reviewed by</th>
                   <th />
                 </tr>
               </thead>
@@ -85,6 +86,11 @@ export function DocumentsPage() {
                       ) : (
                         <span className="doc-list-none">No comparison yet</span>
                       )}
+                    </td>
+                    <td>
+                      {row.history.length > 0 && row.history[0].reviewedBy
+                        ? row.history[0].reviewedBy
+                        : '—'}
                     </td>
                     <td>
                       <Link to={`/documents/${row.documentId}`} className="link">

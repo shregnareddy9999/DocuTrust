@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecentDocuments, type RecentDocumentRow } from '../state/recentDocuments';
 import { useShellSearch } from '../state/shellSearch';
@@ -6,8 +6,10 @@ import { StatusBadge } from '../components/StatusBadge';
 import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
-import { HistoryIcon } from '../components/icons';
+import { HistoryIcon, TrashIcon } from '../components/icons';
 import type { VerificationStatus } from '../types/api';
+import { hideVerification } from '../state/recentDocuments';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 interface HistoryEntry {
   verificationId: string;
@@ -17,6 +19,7 @@ interface HistoryEntry {
   isCurrent: boolean;
   createdAt: string;
   reviewedBy: string | null;
+  documentId: string;
 }
 
 function entriesFor(row: RecentDocumentRow): HistoryEntry[] {
@@ -28,12 +31,14 @@ function entriesFor(row: RecentDocumentRow): HistoryEntry[] {
     isCurrent: item.isCurrent,
     createdAt: item.createdAt,
     reviewedBy: item.reviewedBy,
+    documentId: row.documentId,
   }));
 }
 
 export function HistoryPage() {
   const { rows, loading, error, reload } = useRecentDocuments();
   const search = useShellSearch();
+  const [deleteTarget, setDeleteTarget] = useState<{ documentId: string; verificationId: string } | null>(null);
 
   const entries = useMemo(() => {
     const all = rows.flatMap(entriesFor);
@@ -46,6 +51,21 @@ export function HistoryPage() {
         .includes(query)
     );
   }, [rows, search]);
+
+  const handleDeleteClick = (documentId: string, verificationId: string) => {
+    setDeleteTarget({ documentId, verificationId });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      hideVerification(deleteTarget.documentId, deleteTarget.verificationId);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteTarget(null);
+  };
 
   if (loading && rows.length === 0) {
     return <LoadingState message="Loading this browser session…" />;
@@ -62,8 +82,8 @@ export function HistoryPage() {
         <p className="page-intro">Verification outcomes for documents opened in this browser session.</p>
         <EmptyState
           icon={<HistoryIcon />}
-          title="No verification history yet"
-          message="Comparison results will appear here."
+          title={<strong>No documents uploaded, please upload</strong>}
+          message=""
           action={
             <Link to="/verify" className="button button--primary">
               Verify a document
@@ -90,6 +110,7 @@ export function HistoryPage() {
                   <th>Created</th>
                   <th>Position</th>
                   <th />
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -107,12 +128,33 @@ export function HistoryPage() {
                         View
                       </Link>
                     </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="button button--ghost"
+                        onClick={() => handleDeleteClick(entry.documentId, entry.verificationId)}
+                        aria-label={`Delete verification for ${entry.documentName}`}
+                        style={{ padding: '4px 8px', fontSize: '12px' }}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </section>
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Delete verification"
+        message="Are you sure you want to delete this verification from history? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 }

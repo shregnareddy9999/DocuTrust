@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDocument } from '../state/useDocument';
 import { useVerification } from '../state/useVerification';
-import { SyntheticDataBanner } from '../components/SyntheticDataBanner';
 import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
@@ -10,6 +9,7 @@ import { ProcessingSteps, type ProcessingStep } from '../components/ProcessingSt
 import { PipelineTrack } from '../components/PipelineTrack';
 import { getLocalPreview } from '../state/preview';
 import { addRecentDocument } from '../state/recentDocuments';
+import { pathAfterVerification } from '../utils/reviewNavigation';
 import { safeMessage, translateWarning, getVerifyErrorMessage } from '../utils/messages';
 import {
   describeOcrConfidence,
@@ -71,7 +71,9 @@ export function DocumentDetailPage() {
     try {
       const result = await runVerification(documentId);
       setVerifyStage('preparing');
-      navigate(`/verifications/${result.verification_id}`, { state: { status: result.status } });
+      navigate(pathAfterVerification(result.verification_id, result.status), {
+        state: { status: result.status },
+      });
     } catch {
       setVerifyStage('idle');
     }
@@ -99,7 +101,6 @@ export function DocumentDetailPage() {
 
   return (
     <div className="page document-detail-page">
-      <SyntheticDataBanner />
       <h1>Extracted document details</h1>
       <p className="page-intro">
         These values were read from the uploaded file by OCR. Confidence describes how reliably the
@@ -108,28 +109,26 @@ export function DocumentDetailPage() {
 
       <PipelineTrack current={verifyStage === 'idle' ? 'extract' : 'compare'} />
 
-      <section className="card" aria-label="Document preview">
-        <h2>Preview</h2>
-        {preview ? (
-          <>
-            {preview.kind === 'pdf' ? (
-              <iframe className="preview-frame" src={preview.url} title="Document preview" />
-            ) : (
-              <img className="preview-image" src={preview.url} alt="Document preview" />
-            )}
-            <div className="receipt-row">
-              <span className="receipt-label">File name</span>
-              <span className="receipt-value">{document.original_filename}</span>
-            </div>
-            <div className="receipt-row">
-              <span className="receipt-label">Size</span>
-              <span className="receipt-value">{formatSize(preview.size)}</span>
-            </div>
-          </>
-        ) : (
-          <p className="note">Preview not available</p>
-        )}
-      </section>
+      {preview ? (
+        <section className="card" aria-label="Uploaded document">
+          <h2>Uploaded document</h2>
+          {preview.kind === 'pdf' ? (
+            <iframe className="preview-frame" src={preview.url} title="Document preview" />
+          ) : (
+            <img className="preview-image" src={preview.url} alt="Uploaded document" />
+          )}
+          <div className="receipt-row">
+            <span className="receipt-label">File name</span>
+            <span className="receipt-value">{document.original_filename}</span>
+          </div>
+          <div className="receipt-row">
+            <span className="receipt-label">Size</span>
+            <span className="receipt-value">{formatSize(preview.size)}</span>
+          </div>
+        </section>
+      ) : (
+        <p className="note">Document preview not available</p>
+      )}
 
       {!extraction ? (
         <EmptyState

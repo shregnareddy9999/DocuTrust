@@ -31,7 +31,7 @@ export const mockDocumentTypes: DocumentType[] = [
   },
   {
     category: 'pan_like_demo',
-    label: 'PAN-like Demo Card',
+    label: 'Pan Card',
     fields: [
       { name: 'holder_name', label: 'Holder Name', type: 'text', required: true, match_field: true },
       { name: 'demo_pan_code', label: 'Demo PAN Code', type: 'text', required: true, match_field: true },
@@ -52,16 +52,29 @@ export const mockDocumentTypes: DocumentType[] = [
   },
 ];
 
-const STUB_DOCUMENT_ID = 'doc-demo-0001';
-const STUB_VERIFICATION_ID = 'ver-demo-0001';
+let mockDocumentCounter = 0;
+let mockVerificationCounter = 0;
 
-export { STUB_DOCUMENT_ID, STUB_VERIFICATION_ID };
+function nextDocumentId(): string {
+  mockDocumentCounter += 1;
+  return `doc-demo-${mockDocumentCounter.toString().padStart(4, '0')}`;
+}
+
+function nextVerificationId(): string {
+  mockVerificationCounter += 1;
+  return `ver-demo-${mockVerificationCounter.toString().padStart(4, '0')}`;
+}
+
+export function resetMockCounters(): void {
+  mockDocumentCounter = 0;
+  mockVerificationCounter = 0;
+}
 
 function baseVerifications() {
   const now = new Date().toISOString();
   return {
-    verification_id: STUB_VERIFICATION_ID,
-    document_id: STUB_DOCUMENT_ID,
+    verification_id: nextVerificationId(),
+    document_id: nextDocumentId(),
     registry_record_key: null,
     field_comparisons: [],
     rule_results: [],
@@ -160,7 +173,7 @@ export function generatedMockVerification(mockStatus: VerificationStatus) {
 
 export function generatedBlockchain(chainFlag: string | null) {
   const base = {
-    verification_id: STUB_VERIFICATION_ID,
+    verification_id: nextVerificationId(),
     chain_id: 31337,
     contract_address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
   };
@@ -184,7 +197,7 @@ export function generatedBlockchain(chainFlag: string | null) {
   switch (state) {
     case 'NOT_REQUESTED':
       return {
-        verification_id: STUB_VERIFICATION_ID,
+        verification_id: nextVerificationId(),
         recording_status: 'NOT_REQUESTED',
         chain_id: null,
         contract_address: null,
@@ -268,15 +281,17 @@ export const handlers = [
       );
     }
 
+    const documentId = nextDocumentId();
     return HttpResponse.json(
-      { document_id: STUB_DOCUMENT_ID, category: 'academic_certificate', processing_state: 'UPLOADED' },
+      { document_id: documentId, category: 'academic_certificate', processing_state: 'UPLOADED' },
       { status: 201 }
     );
   }),
 
   http.get(`${BASE}/documents/:documentId`, ({ params }) => {
+    const documentId = String(params.documentId);
     return HttpResponse.json({
-      document_id: String(params.documentId),
+      document_id: documentId,
       category: 'academic_certificate',
       original_filename: 'marksheet-demo.pdf',
       processing_state: 'UPLOADED',
@@ -284,13 +299,14 @@ export const handlers = [
     });
   }),
 
-  http.get(`${BASE}/documents/:documentId/extraction`, async () => {
+  http.get(`${BASE}/documents/:documentId/extraction`, async ({ params }) => {
     const { mock, slow } = getMockConfig();
     if (slow) await delay(900);
+    const documentId = String(params.documentId);
 
     if (mock === 'PROCESSING_FAILED') {
       return HttpResponse.json({
-        document_id: STUB_DOCUMENT_ID,
+        document_id: documentId,
         engine_name: 'paddleocr',
         engine_version: '2.8.1',
         extracted_fields: {},
@@ -300,7 +316,7 @@ export const handlers = [
     }
 
     return HttpResponse.json({
-      document_id: STUB_DOCUMENT_ID,
+      document_id: documentId,
       engine_name: 'paddleocr',
       engine_version: '2.8.1',
       extracted_fields: {
@@ -320,61 +336,71 @@ export const handlers = [
     });
   }),
 
-  http.post(`${BASE}/documents/:documentId/verify`, async () => {
+  http.post(`${BASE}/documents/:documentId/verify`, async ({ params }) => {
     const { mock, slow, net } = getMockConfig();
     if (net) return HttpResponse.error();
     if (slow) await delay(1200);
     const status = (mock ?? 'VERIFIED_MATCH') as VerificationStatus;
-    return HttpResponse.json({ verification_id: STUB_VERIFICATION_ID, status, document_id: STUB_DOCUMENT_ID });
+    const documentId = String(params.documentId);
+    return HttpResponse.json({ verification_id: nextVerificationId(), status, document_id: documentId });
   }),
 
-  http.post(`${BASE}/verifications/:verificationId/review`, async ({ request }) => {
+  http.post(`${BASE}/verifications/:verificationId/review`, async ({ request, params }) => {
     const { slow, net } = getMockConfig();
     if (net) return HttpResponse.error();
     if (slow) await delay(600);
     const body = (await request.json()) as { action?: string };
     const action = body.action ?? 'ACCEPT';
+    const verificationId = String(params.verificationId);
+    const newVerificationId = nextVerificationId();
     if (action === 'CORRECT') {
       return HttpResponse.json(
-        { review_action_id: 'rev-demo-0001', new_verification_id: 'ver-demo-0002', new_status: 'VERIFIED_MATCH' },
+        { review_action_id: 'rev-demo-0001', new_verification_id: newVerificationId, new_status: 'VERIFIED_MATCH' },
         { status: 201 }
       );
     }
     if (action === 'UNRESOLVED') {
       return HttpResponse.json(
-        { review_action_id: 'rev-demo-0001', new_verification_id: 'ver-demo-0001', new_status: 'REVIEW_REQUIRED' },
+        { review_action_id: 'rev-demo-0001', new_verification_id: verificationId, new_status: 'REVIEW_REQUIRED' },
         { status: 201 }
       );
     }
     return HttpResponse.json(
-      { review_action_id: 'rev-demo-0001', new_verification_id: 'ver-demo-0001', new_status: 'VERIFIED_MATCH' },
+      { review_action_id: 'rev-demo-0001', new_verification_id: verificationId, new_status: 'VERIFIED_MATCH' },
       { status: 201 }
     );
   }),
 
-  http.get(`${BASE}/verifications/:verificationId`, async () => {
+  http.get(`${BASE}/verifications/:verificationId`, async ({ params }) => {
     const { mock, slow } = getMockConfig();
     if (slow) await delay(600);
     const status = (mock ?? 'VERIFIED_MATCH') as VerificationStatus;
-    return HttpResponse.json(generatedMockVerification(status));
+    const verificationId = String(params.verificationId);
+    const verification = generatedMockVerification(status);
+    return HttpResponse.json({ ...verification, verification_id: verificationId });
   }),
 
-  http.get(`${BASE}/verifications/:verificationId/blockchain`, async () => {
+  http.get(`${BASE}/verifications/:verificationId/blockchain`, async ({ params }) => {
     const { chain, slow } = getMockConfig();
     if (slow) await delay(400);
-    return HttpResponse.json(generatedBlockchain(chain));
+    const verificationId = String(params.verificationId);
+    const blockchain = generatedBlockchain(chain);
+    return HttpResponse.json({ ...blockchain, verification_id: verificationId });
   }),
 
-  http.get(`${BASE}/documents/:documentId/verifications`, async () => {
+  http.get(`${BASE}/documents/:documentId/verifications`, async ({ params }) => {
     const { mock, slow } = getMockConfig();
     if (slow) await delay(400);
     const currentStatus = (mock ?? 'VERIFIED_MATCH') as VerificationStatus;
+    const documentId = String(params.documentId);
     const now = new Date().toISOString();
+    const currentVerificationId = nextVerificationId();
+    const previousVerificationId = nextVerificationId();
     return HttpResponse.json({
-      document_id: STUB_DOCUMENT_ID,
+      document_id: documentId,
       verifications: [
-        { verification_id: STUB_VERIFICATION_ID, status: currentStatus, is_current: true, supersedes_verification_id: 'ver-demo-0000', review_action_count: 0, created_at: now },
-        { verification_id: 'ver-demo-0000', status: 'REVIEW_REQUIRED', is_current: false, supersedes_verification_id: null, review_action_count: 1, created_at: new Date(Date.now() - 86400000).toISOString() },
+        { verification_id: currentVerificationId, status: currentStatus, is_current: true, supersedes_verification_id: previousVerificationId, review_action_count: 0, created_at: now },
+        { verification_id: previousVerificationId, status: 'REVIEW_REQUIRED', is_current: false, supersedes_verification_id: null, review_action_count: 1, created_at: new Date(Date.now() - 86400000).toISOString() },
       ],
     });
   }),

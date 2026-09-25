@@ -57,8 +57,8 @@ export function DashboardPage() {
         <p className="page-intro">Documents opened in this browser session.</p>
         <EmptyState
           icon={<DocumentsIcon />}
-          title="No documents yet"
-          message="Verify a document to see its summary here."
+          title={<strong>No documents uploaded, please upload</strong>}
+          message=""
           action={
             <Link to="/verify" className="button button--primary">
               Verify a document

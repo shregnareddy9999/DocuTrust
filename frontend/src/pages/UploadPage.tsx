@@ -6,12 +6,13 @@ import { UploadDropzone } from '../components/UploadDropzone';
 import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
-import { SyntheticDataBanner } from '../components/SyntheticDataBanner';
 import { ProcessingSteps, type ProcessingStep } from '../components/ProcessingSteps';
 import { PipelineTrack } from '../components/PipelineTrack';
 import { getUploadErrorMessage, getVerifyErrorMessage, safeMessage } from '../utils/messages';
 import { setLocalPreview } from '../state/preview';
-import { addRecentDocument } from '../state/recentDocuments';
+import { addRecentDocument, getRecentDocumentIds } from '../state/recentDocuments';
+import { getDocument } from '../api/documents';
+import { pathAfterVerification } from '../utils/reviewNavigation';
 
 type Stage = 'idle' | 'uploading' | 'verifying' | 'preparing';
 
@@ -48,6 +49,8 @@ export function UploadPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [stage, setStage] = useState<Stage>('idle');
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [isDuplicate, setIsDuplicate] = useState(false);
 
   useEffect(() => {
     fetchDocumentTypes();
@@ -55,17 +58,46 @@ export function UploadPage() {
 
   const processing = stage !== 'idle';
 
-  function handleFileSelected(file: File) {
+  async function checkDuplicate(fileName: string): Promise<boolean> {
+    const recentIds = getRecentDocumentIds();
+    for (const id of recentIds) {
+      try {
+        const doc = await getDocument(id);
+        if (doc.original_filename === fileName) {
+          return true;
+        }
+      } catch {
+        // ignore errors
+      }
+    }
+    return false;
+  }
+
+  async function handleFileSelected(file: File) {
     if (processing) return;
     clearError();
     clearVerifyError();
     setUploadError(null);
+    setDuplicateWarning(null);
+    setIsDuplicate(false);
     setSelectedFile(file);
+
+    // Check for duplicate file name in history
+    const duplicate = await checkDuplicate(file.name);
+    if (duplicate) {
+      setDuplicateWarning(`Document "${file.name}" is already uploaded.`);
+      setIsDuplicate(true);
+    }
   }
 
   async function handleVerify() {
     if (!selectedFile || !category || processing) return;
+    if (isDuplicate) {
+      setDuplicateWarning(`Document "${selectedFile.name}" is already uploaded. Please choose a different file.`);
+      return;
+    }
     setUploadError(null);
+    setDuplicateWarning(null);
     setStage('uploading');
     try {
       const uploaded = await upload(selectedFile, category);
@@ -75,7 +107,9 @@ export function UploadPage() {
       try {
         const result = await runVerification(uploaded.document_id);
         setStage('preparing');
-        navigate(`/verifications/${result.verification_id}`, { state: { status: result.status } });
+        navigate(pathAfterVerification(result.verification_id, result.status), {
+          state: { status: result.status },
+        });
       } catch (verifyErr) {
         setStage('idle');
         setUploadError(getVerifyErrorMessage(verifyErr));
@@ -105,7 +139,6 @@ export function UploadPage() {
 
   return (
     <div className="page upload-page">
-      <SyntheticDataBanner />
       <h1>Verify a document</h1>
       <p className="page-intro">
         Choose a document category, then upload a file. The document is read by OCR and compared
@@ -143,6 +176,11 @@ export function UploadPage() {
             ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
           </p>
         ) : null}
+        {duplicateWarning ? (
+          <p className="form-error" role="alert">
+            {duplicateWarning}
+          </p>
+        ) : null}
         {uploadError ? (
           <p className="form-error" role="alert">
             {uploadError}
@@ -152,7 +190,7 @@ export function UploadPage() {
           <button
             type="button"
             className="button button--primary"
-            disabled={!selectedFile || !category || processing}
+            disabled={!selectedFile || !category || processing || isDuplicate}
             onClick={handleVerify}
           >
             {stage === 'verifying'

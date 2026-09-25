@@ -1,17 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { DocumentDetailPage } from './DocumentDetailPage';
 import { renderWithRouter } from '../test/render';
 import { server } from '../test/setup';
-import { setMockConfig } from '../mocks/config';
-import { STUB_DOCUMENT_ID } from '../mocks/handlers';
+import { setMockConfig, resetMockConfig } from '../mocks/config';
+import { resetMockCounters } from '../mocks/handlers';
 
-const ROUTE = `/documents/${STUB_DOCUMENT_ID}`;
+const TEST_DOCUMENT_ID = 'doc-demo-0001';
+const ROUTE = `/documents/${TEST_DOCUMENT_ID}`;
 const PATH = '/documents/:documentId';
 
 describe('DocumentDetailPage', () => {
+  beforeEach(() => {
+    resetMockConfig();
+    resetMockCounters();
+    server.resetHandlers();
+  });
+
   it('renders extracted fields with confidence and nulls as "Not found"', async () => {
     renderWithRouter(<DocumentDetailPage />, { route: ROUTE, path: PATH });
     expect(await screen.findByText('Aarav Demo')).toBeInTheDocument();
@@ -23,9 +30,9 @@ describe('DocumentDetailPage', () => {
 
   it('shows the low-confidence message for fields below 0.70', async () => {
     server.use(
-      http.get(`*/api/v1/documents/${STUB_DOCUMENT_ID}/extraction`, () =>
+      http.get(`*/api/v1/documents/${TEST_DOCUMENT_ID}/extraction`, () =>
         HttpResponse.json({
-          document_id: STUB_DOCUMENT_ID,
+          document_id: TEST_DOCUMENT_ID,
           engine_name: 'demo',
           engine_version: '1',
           status: 'SUCCEEDED',
@@ -71,14 +78,14 @@ describe('DocumentDetailPage', () => {
   });
 
   it('shows an error state with retry when the network fails', async () => {
-    server.use(http.get(`*/api/v1/documents/${STUB_DOCUMENT_ID}/extraction`, () => HttpResponse.error()));
+    server.use(http.get(`*/api/v1/documents/${TEST_DOCUMENT_ID}/extraction`, () => HttpResponse.error()));
     renderWithRouter(<DocumentDetailPage />, { route: ROUTE, path: PATH });
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 
   it('shows an empty state when no extraction is available', async () => {
-    server.use(http.get(`*/api/v1/documents/${STUB_DOCUMENT_ID}/extraction`, () => new HttpResponse(null, { status: 204 })));
+    server.use(http.get(`*/api/v1/documents/${TEST_DOCUMENT_ID}/extraction`, () => new HttpResponse(null, { status: 204 })));
     renderWithRouter(<DocumentDetailPage />, { route: ROUTE, path: PATH });
     expect(await screen.findByText('No extraction available')).toBeInTheDocument();
   });

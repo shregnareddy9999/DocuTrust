@@ -5,7 +5,6 @@ import { useVerification } from '../state/useVerification';
 import { useRecentDocumentIds } from '../state/recentDocuments';
 import { StatusBadge } from '../components/StatusBadge';
 import { BlockchainStatusBadge } from '../components/BlockchainStatusBadge';
-import { SyntheticDataBanner } from '../components/SyntheticDataBanner';
 import { FieldComparisonTable } from '../components/FieldComparisonTable';
 import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
@@ -93,7 +92,6 @@ export function DemoDashboardPage() {
 
   return (
     <div className="page demo-dashboard">
-      <SyntheticDataBanner />
       <h1>PS21 Live Demo</h1>
       <p className="page-intro">
         Projected outcome for <strong>{documentId}</strong>. This is a synthetic demonstration — every

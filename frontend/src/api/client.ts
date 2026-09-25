@@ -63,7 +63,26 @@ export async function apiRequest<T>(
     return undefined as T;
   }
 
-  return response.json();
+  const contentType = response.headers.get('content-type') ?? '';
+  if (contentType.includes('text/html')) {
+    throw new ApiError(
+      'INTERNAL_ERROR',
+      'Could not reach the DocuTrust API. Start the backend at http://127.0.0.1:8000, then open the app at http://localhost:5173/ without adding mock flags.',
+      {},
+      response.status
+    );
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new ApiError(
+      'INTERNAL_ERROR',
+      'Could not reach the DocuTrust API. Start the backend at http://127.0.0.1:8000, then open the app at http://localhost:5173/.',
+      {},
+      response.status
+    );
+  }
 }
 
 export function getApiBaseUrl(): string {

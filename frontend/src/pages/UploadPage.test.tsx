@@ -13,6 +13,7 @@ function renderUploadPage() {
       <Routes>
         <Route path="/" element={<UploadPage />} />
         <Route path="/verifications/:verificationId" element={<div>Result placeholder</div>} />
+        <Route path="/verifications/:verificationId/review" element={<div>Review placeholder</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -32,7 +33,7 @@ describe('UploadPage', () => {
     renderUploadPage();
     expect(await screen.findByText('Academic Certificate')).toBeInTheDocument();
     expect(screen.getByText('Institutional ID')).toBeInTheDocument();
-    expect(screen.getByText('PAN-like Demo Card')).toBeInTheDocument();
+    expect(screen.getByText('Pan Card')).toBeInTheDocument();
     expect(screen.getByText('Government Certificate')).toBeInTheDocument();
   });
 
@@ -63,6 +64,14 @@ describe('UploadPage', () => {
     expect(
       await screen.findByText('Result placeholder', {}, { timeout: 6000 })
     ).toBeInTheDocument();
+  });
+
+  it('navigates to review when the comparison needs a human review', async () => {
+    setMockConfig({ mock: 'INTEGRITY_MISMATCH' });
+    renderUploadPage();
+    await selectFileAndCategory();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Upload and verify' }));
+    expect(await screen.findByText('Review placeholder', {}, { timeout: 6000 })).toBeInTheDocument();
   });
 
   it.each([

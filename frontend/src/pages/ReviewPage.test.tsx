@@ -1,16 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { ReviewPage } from './ReviewPage';
 import { renderWithRouter } from '../test/render';
 import { server } from '../test/setup';
-import { STUB_VERIFICATION_ID } from '../mocks/handlers';
+import { resetMockConfig } from '../mocks/config';
+import { resetMockCounters } from '../mocks/handlers';
 
-const ROUTE = `/verifications/${STUB_VERIFICATION_ID}/review`;
+const TEST_VERIFICATION_ID = 'ver-demo-0001';
+const ROUTE = `/verifications/${TEST_VERIFICATION_ID}/review`;
 const PATH = '/verifications/:verificationId/review';
 
 describe('ReviewPage', () => {
+  beforeEach(() => {
+    resetMockConfig();
+    resetMockCounters();
+    server.resetHandlers();
+  });
+
   it('pre-fills the correction form with extracted values when CORRECT is chosen', async () => {
     const user = userEvent.setup();
     renderWithRouter(<ReviewPage />, { route: ROUTE, path: PATH });
