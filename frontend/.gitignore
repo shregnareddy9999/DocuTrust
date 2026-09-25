@@ -12,6 +12,19 @@ dist
 dist-ssr
 *.local
 
+# Environment & secrets (Rule: never commit; AGENTS §6 do-not-commit list)
+.env
+.env.*
+!.env.example
+
+# Test artefacts (QA file Part D: coverage + screenshots must be ignored)
+coverage
+e2e/screenshots
+frontend/coverage
+frontend/e2e/screenshots
+
+# Editor / OS already handled above (.vscode/*, .idea, .DS_Store)
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

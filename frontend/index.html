@@ -3,11 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="DocuTrust — document verification console (synthetic demo)." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <title>DocuTrust · Verification Console</title>
+    <script>
+      console.log('[index.html] Page loading');
+      window.addEventListener('error', (e) => {
+        console.error('[index.html] Global error:', e.error?.message || e.message, e.filename, e.lineno);
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        console.error('[index.html] Unhandled rejection:', e.reason);
+      });
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="display: grid; place-items: center; min-height: 100vh; background: #0f172a; color: #fff; font-family: system-ui;">
+        <div style="text-align: center;">
+          <div style="width: 48px; height: 48px; border: 3px solid #fbbf24; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+          <p>Loading DocuTrust...</p>
+        </div>
+        <style>
+          @keyframes spin { to { transform: rotate(360deg); } }
+        </style>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

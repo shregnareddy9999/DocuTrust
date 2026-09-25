@@ -59,3 +59,11 @@ def test_health_no_secrets_or_paths_leaked(client: TestClient):
     assert "CHAIN_EVENT_SALT" not in response_text
     assert "BLOCKCHAIN_RPC_URL" not in response_text
     assert "DATABASE_URL" not in response_text
+
+
+def test_root_landing_page_is_not_not_found(client: TestClient):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "text/html" in response.headers.get("content-type", "")
+    assert "DocuTrust" in response.text
+    assert "/api/v1/health" in response.text
