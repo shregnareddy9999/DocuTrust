@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.blockchain.base import BlockchainAdapter, ReceiptResult
 from app.adapters.blockchain.fake_adapter import FakeBlockchainAdapter
+from app.adapters.blockchain.web3_adapter import Web3BlockchainAdapter
 from app.models.blockchain import (
     BlockchainErrorCode,
     BlockchainRecord,
@@ -101,6 +102,16 @@ def _event_matches(
     )
 
 
+def _select_default_adapter() -> BlockchainAdapter:
+    """Select the blockchain adapter for the current application environment."""
+    from app.config import settings
+
+    if settings.APP_ENV == "demo":
+        return Web3BlockchainAdapter()
+
+    return FakeBlockchainAdapter()
+
+
 def submit_verification(
     session: Session,
     verification_id: str,
@@ -115,8 +126,9 @@ def submit_verification(
     """
     Record a terminal verification on the blockchain adapter.
 
-    The default adapter is deliberately the deterministic fake adapter for
-    local Task 09 simulation. The Web3 adapter remains available separately.
+    If no adapter is supplied, the adapter is selected from APP_ENV:
+    - demo: real Web3 adapter
+    - development/test: deterministic fake adapter
     """
 
     verification = verification_repo.get_by_id(session, verification_id)
@@ -180,7 +192,7 @@ def submit_verification(
     blockchain_repo.create(session, record)
 
     if adapter is None:
-        adapter = FakeBlockchainAdapter()
+        adapter = _select_default_adapter()
 
     try:
         tx_hash = adapter.submit_event(
