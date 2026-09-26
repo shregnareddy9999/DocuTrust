@@ -26,7 +26,7 @@ describe('DocumentsPage', () => {
 
   it('shows the required empty copy', async () => {
     renderWithRouter(<DocumentsPage />, { route: '/documents', path: '/documents' });
-    expect(await screen.findByText('No documents yet')).toBeInTheDocument();
+    expect(await screen.findByText('No documents uploaded, please upload')).toBeInTheDocument();
   });
 });
 
@@ -63,6 +63,6 @@ describe('HistoryPage', () => {
 
   it('shows the required empty copy when there is no history', async () => {
     renderWithRouter(<HistoryPage />, { route: '/history', path: '/history' });
-    expect(await screen.findByText('No verification history yet')).toBeInTheDocument();
+    expect(await screen.findByText('No documents uploaded, please upload')).toBeInTheDocument();
   });
 });

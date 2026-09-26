@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecentDocuments } from '../state/recentDocuments';
 import { BlockchainStatusBadge } from '../components/BlockchainStatusBadge';
@@ -6,14 +6,47 @@ import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { BlockchainIcon } from '../components/icons';
+import type { BlockchainStatus } from '../types/api';
+
+interface ReceiptRow {
+  documentId: string;
+  fileName: string;
+  categoryLabel: string;
+  verificationId: string;
+  verificationStatus: string;
+  blockchainStatus: BlockchainStatus | null;
+  isCurrent: boolean;
+  uploadedAt: string;
+}
 
 export function BlockchainReceiptsPage() {
   const { rows, loading, error, reload } = useRecentDocuments();
   const [searchId, setSearchId] = useState('');
 
-  const filteredRows = rows.filter((row) =>
-    row.currentVerificationId?.toLowerCase().includes(searchId.toLowerCase()) ||
-    row.documentId.toLowerCase().includes(searchId.toLowerCase())
+  // Flatten all verifications from all documents into receipt rows
+  const allReceipts = useMemo(() => {
+    const receipts: ReceiptRow[] = [];
+    for (const row of rows) {
+      for (const hist of row.history) {
+        receipts.push({
+          documentId: row.documentId,
+          fileName: row.fileName,
+          categoryLabel: row.categoryLabel,
+          verificationId: hist.verificationId,
+          verificationStatus: hist.status,
+          blockchainStatus: hist.blockchainStatus,
+          isCurrent: hist.isCurrent,
+          uploadedAt: row.uploadedAt,
+        });
+      }
+    }
+    return receipts;
+  }, [rows]);
+
+  const filteredReceipts = allReceipts.filter((receipt) =>
+    receipt.verificationId.toLowerCase().includes(searchId.toLowerCase()) ||
+    receipt.documentId.toLowerCase().includes(searchId.toLowerCase()) ||
+    receipt.fileName.toLowerCase().includes(searchId.toLowerCase())
   );
 
   if (loading && rows.length === 0) {
@@ -24,7 +57,7 @@ export function BlockchainReceiptsPage() {
     return <ErrorState message={error} onRetry={reload} />;
   }
 
-  if (filteredRows.length === 0) {
+  if (filteredReceipts.length === 0) {
     return (
       <div className="page blockchain-receipts-page">
         <h1>Blockchain Receipts</h1>
@@ -87,34 +120,31 @@ export function BlockchainReceiptsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredRows.map((row) => (
-                <tr key={row.documentId}>
-                  <td className="doc-name">{row.fileName}</td>
+              {filteredReceipts.map((receipt) => (
+                <tr key={receipt.verificationId}>
+                  <td className="doc-name">{receipt.fileName}</td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: '12px' }}>
-                    {row.currentVerificationId ?? '—'}
+                    {receipt.verificationId}
                   </td>
-                  <td>{row.categoryLabel}</td>
+                  <td>{receipt.categoryLabel}</td>
                   <td>
-                    {row.currentStatus ? (
-                      <span className={`status-badge status-badge--${row.currentStatus.toLowerCase().replace('_', '-')}`}>
-                        {row.currentStatus}
-                      </span>
-                    ) : (
-                      <span className="doc-list-none">No verification</span>
-                    )}
+                    <span className={`status-badge status-badge--${receipt.verificationStatus.toLowerCase().replace('_', '-')}`}>
+                      {receipt.verificationStatus}
+                    </span>
+                    {receipt.isCurrent && <span className="current-marker" style={{ marginLeft: '6px', fontSize: '11px', color: 'var(--muted)' }}>Current</span>}
                   </td>
                   <td>
-                    {row.blockchainStatus ? (
+                    {receipt.blockchainStatus ? (
                       <BlockchainStatusBadge
                         blockchain={{
-                          verification_id: row.currentVerificationId ?? '',
-                          recording_status: row.blockchainStatus,
-                          chain_id: row.blockchainStatus !== 'NOT_REQUESTED' ? 31337 : null,
-                          contract_address: row.blockchainStatus !== 'NOT_REQUESTED' ? '0x5FbDB2315678afecb367f032d93F642f64180aa3' : null,
-                          transaction_hash: row.blockchainStatus !== 'NOT_REQUESTED' ? '0x6b1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2' : null,
-                          event_digest: row.blockchainStatus !== 'NOT_REQUESTED' ? '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c' : null,
-                          submitted_at: row.blockchainStatus !== 'NOT_REQUESTED' ? new Date().toISOString() : null,
-                          confirmed_at: row.blockchainStatus === 'CONFIRMED' ? new Date().toISOString() : null,
+                          verification_id: receipt.verificationId,
+                          recording_status: receipt.blockchainStatus,
+                          chain_id: receipt.blockchainStatus !== 'NOT_REQUESTED' ? 31337 : null,
+                          contract_address: receipt.blockchainStatus !== 'NOT_REQUESTED' ? '0x5FbDB2315678afecb367f032d93F642f64180aa3' : null,
+                          transaction_hash: receipt.blockchainStatus !== 'NOT_REQUESTED' ? '0x6b1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2' : null,
+                          event_digest: receipt.blockchainStatus !== 'NOT_REQUESTED' ? '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c' : null,
+                          submitted_at: receipt.blockchainStatus !== 'NOT_REQUESTED' ? new Date().toISOString() : null,
+                          confirmed_at: receipt.blockchainStatus === 'CONFIRMED' ? new Date().toISOString() : null,
                           error_code: null,
                         }}
                       />
@@ -123,15 +153,13 @@ export function BlockchainReceiptsPage() {
                     )}
                   </td>
                   <td>
-                    {row.currentVerificationId ? (
-                      <Link
-                        to={`/verifications/${row.currentVerificationId}/blockchain`}
-                        className="button button--secondary"
-                        style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-block' }}
-                      >
-                        View Receipt
-                      </Link>
-                    ) : null}
+                    <Link
+                      to={`/verifications/${receipt.verificationId}/blockchain`}
+                      className="button button--secondary"
+                      style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-block' }}
+                    >
+                      View Receipt
+                    </Link>
                   </td>
                 </tr>
               ))}

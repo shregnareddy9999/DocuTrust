@@ -6,6 +6,26 @@ export interface DemoSession {
 const SPLASH_KEY = 'docutrust.splashDone';
 const SESSION_KEY = 'docutrust.demoSession';
 const LAST_ROUTE_KEY = 'docutrust.lastRoute';
+const REGISTERED_USERS_KEY = 'docutrust.registeredUsers';
+
+const sessionChangeListeners = new Set<() => void>();
+
+export function onSessionChange(listener: () => void): () => void {
+  sessionChangeListeners.add(listener);
+  return () => {
+    sessionChangeListeners.delete(listener);
+  };
+}
+
+function emitSessionChange(): void {
+  for (const listener of sessionChangeListeners) {
+    try {
+      listener();
+    } catch {
+      // ignore listener errors
+    }
+  }
+}
 
 export function hasSplashBeenShown(): boolean {
   // Always return false so splash shows on every page load/reload
@@ -38,6 +58,7 @@ export function getDemoSession(): DemoSession | null {
 export function setDemoSession(session: DemoSession): void {
   try {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    emitSessionChange();
   } catch {
     // localStorage unavailable; the current tab can still proceed via memory if needed
   }
@@ -71,7 +92,48 @@ export function clearDemoSession(): void {
     localStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(SPLASH_KEY);
     sessionStorage.removeItem(LAST_ROUTE_KEY);
+    emitSessionChange();
   } catch {
     // storage unavailable
   }
+}
+
+function readRegisteredUsers(): string[] {
+  try {
+    const raw = localStorage.getItem(REGISTERED_USERS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed.filter((email): email is string => typeof email === 'string');
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRegisteredUsers(users: string[]): void {
+  try {
+    localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(users));
+  } catch {
+    // storage unavailable
+  }
+}
+
+export function isEmailRegistered(email: string): boolean {
+  const users = readRegisteredUsers();
+  return users.some((e) => e.toLowerCase() === email.toLowerCase());
+}
+
+export function registerEmail(email: string): void {
+  const users = readRegisteredUsers();
+  const normalized = email.toLowerCase();
+  if (!users.some((e) => e.toLowerCase() === normalized)) {
+    users.push(normalized);
+    writeRegisteredUsers(users);
+  }
+}
+
+export function getRegisteredEmails(): string[] {
+  return readRegisteredUsers();
 }

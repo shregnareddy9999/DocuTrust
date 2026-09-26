@@ -2,7 +2,7 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShieldIcon, EyeIcon, EyeOffIcon } from '../components/icons';
-import { setDemoSession } from '../state/demoAuth';
+import { setDemoSession, isEmailRegistered, registerEmail } from '../state/demoAuth';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
@@ -19,12 +19,27 @@ export function AuthPage({ mode }: AuthPageProps) {
 
   function handleSubmit(event: FormEvent): void {
     event.preventDefault();
-    const name = (isRegister ? displayName : email.split('@')[0] || 'Demo user').trim();
     const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password.trim() || (isRegister && !name)) {
+    const trimmedPassword = password.trim();
+    
+    if (!trimmedEmail || !trimmedPassword || (isRegister && !displayName.trim())) {
       setFormError('Enter the required fields to continue this demonstration.');
       return;
     }
+
+    if (!isRegister) {
+      if (!isEmailRegistered(trimmedEmail)) {
+        setFormError('for login please register');
+        return;
+      }
+    }
+
+    const name = (isRegister ? displayName : trimmedEmail.split('@')[0] || 'Demo user').trim();
+    
+    if (isRegister) {
+      registerEmail(trimmedEmail);
+    }
+    
     setDemoSession({
       displayName: name || 'Demo user',
       email: trimmedEmail,
@@ -43,9 +58,6 @@ export function AuthPage({ mode }: AuthPageProps) {
         </div>
         <p className="auth-card__intro">
           {isRegister ? 'Create a demonstration profile' : 'Sign in to the demonstration'}
-        </p>
-        <p className="note">
-          Demonstration only. This screen stays in the browser and does not create a server account.
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
