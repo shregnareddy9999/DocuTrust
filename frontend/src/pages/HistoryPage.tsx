@@ -56,9 +56,9 @@ export function HistoryPage() {
     setDeleteTarget({ documentId, verificationId });
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deleteTarget) {
-      hideVerification(deleteTarget.documentId, deleteTarget.verificationId);
+      await hideVerification(deleteTarget.documentId, deleteTarget.verificationId);
       setDeleteTarget(null);
     }
   };

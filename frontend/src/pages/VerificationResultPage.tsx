@@ -21,6 +21,21 @@ function getUserFriendlyRuleMessage(ruleId: string, passed: boolean, reason?: st
   if (ruleId === 'field_match') {
     return passed ? 'All key fields match the demo registry record' : (reason || 'One or more key fields do not match the demo registry');
   }
+  if (ruleId === 'category_schema_validity') {
+    return passed
+      ? 'All extracted values conform to the expected data types'
+      : (reason || 'One or more extracted values do not match the expected format');
+  }
+  if (ruleId === 'date_consistency') {
+    return passed
+      ? 'Date consistency check passed (no related-date rules defined for this document type)'
+      : (reason || 'Date consistency check failed');
+  }
+  if (ruleId === 'known_fixture_duplicate') {
+    return passed
+      ? 'No fixture confusion detected (identifying key matches a consistent registry record)'
+      : (reason || 'Possible fixture confusion: identifying key matches a registry record with conflicting data');
+  }
   return passed ? 'Passed' : (reason || 'Failed');
 }
 
