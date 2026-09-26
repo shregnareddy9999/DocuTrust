@@ -137,3 +137,20 @@ export function registerEmail(email: string): void {
 export function getRegisteredEmails(): string[] {
   return readRegisteredUsers();
 }
+
+export function deleteDemoAccount(): void {
+  try {
+    const session = getDemoSession();
+    if (session) {
+      const users = readRegisteredUsers();
+      const filtered = users.filter((e) => e.toLowerCase() !== session.email.toLowerCase());
+      writeRegisteredUsers(filtered);
+      localStorage.removeItem(`${STORAGE_KEY_PREFIX}.${session.email.toLowerCase()}`);
+    }
+    clearDemoSession();
+  } catch {
+    // storage unavailable
+  }
+}
+
+const STORAGE_KEY_PREFIX = 'docutrust.recentDocuments';

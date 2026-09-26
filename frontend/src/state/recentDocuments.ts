@@ -152,7 +152,7 @@ export async function hideVerification(documentId: string, verificationId: strin
         removeRecentDocument(documentId);
       }
     } catch {
-      // If we can't fetch history, keep the document in the list
+      // If API fails, keep the document if there might be other visible verifications
     }
   }
 }
