@@ -129,7 +129,7 @@ export function removeRecentDocument(documentId: string): void {
   emit();
 }
 
-export function hideVerification(documentId: string, verificationId: string): void {
+export async function hideVerification(documentId: string, verificationId: string): Promise<void> {
   reloadFromStorage();
   const doc = storedDocuments.find(d => d.documentId === documentId);
   if (doc) {
@@ -141,6 +141,19 @@ export function hideVerification(documentId: string, verificationId: string): vo
     }
     writeStoredDocuments(storedDocuments);
     emit();
+
+    try {
+      const historyResponse = await getVerificationHistory(documentId);
+      const hiddenIds = doc.hiddenVerificationIds ?? [];
+      const visibleVerifications = historyResponse.verifications.filter(
+        (item) => !hiddenIds.includes(item.verification_id)
+      );
+      if (visibleVerifications.length === 0) {
+        removeRecentDocument(documentId);
+      }
+    } catch {
+      // If we can't fetch history, keep the document in the list
+    }
   }
 }
 
