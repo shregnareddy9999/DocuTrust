@@ -42,7 +42,7 @@ def document_types() -> list[dict]:
     labels = {
         "academic_certificate": "Academic Certificate",
         "institutional_id": "Institutional ID",
-        "pan_like_demo": "PAN-like Demo",
+        "pan_like_demo": "Pan Card",
         "government_certificate": "Government Certificate",
     }
 
