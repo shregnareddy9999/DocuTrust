@@ -68,7 +68,7 @@ export function HistoryPage() {
   };
 
   if (loading && rows.length === 0) {
-    return <LoadingState message="Loading this browser session…" />;
+    return <LoadingState message="Loading your history…" />;
   }
 
   if (error) {
@@ -79,7 +79,7 @@ export function HistoryPage() {
     return (
       <div className="page history-page">
         <h1>History</h1>
-        <p className="page-intro">Verification outcomes for documents opened in this browser session.</p>
+        <p className="page-intro">Verification outcomes for documents in your account.</p>
         <EmptyState
           icon={<HistoryIcon />}
           title={<strong>No documents uploaded, please upload</strong>}
@@ -97,7 +97,7 @@ export function HistoryPage() {
   return (
     <div className="page history-page">
       <h1>History</h1>
-      <p className="page-intro">Verification outcomes for documents opened in this browser session.</p>
+      <p className="page-intro">Verification outcomes for documents in your account.</p>
 
       <section className="card" aria-label="Verification history">
           <div className="table-scroll">

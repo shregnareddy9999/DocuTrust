@@ -24,7 +24,7 @@ export function DocumentsPage() {
   }, [rows, search]);
 
   if (loading && rows.length === 0) {
-    return <LoadingState message="Loading this browser session…" />;
+    return <LoadingState message="Loading your documents…" />;
   }
 
   if (error) {
@@ -35,7 +35,7 @@ export function DocumentsPage() {
     return (
       <div className="page documents-page">
         <h1>Documents</h1>
-        <p className="page-intro">Documents opened in this browser session.</p>
+        <p className="page-intro">Documents in your account.</p>
         <EmptyState
           icon={<DocumentsIcon />}
           title={<strong>No documents uploaded, please upload</strong>}
@@ -53,12 +53,12 @@ export function DocumentsPage() {
   return (
     <div className="page documents-page">
       <h1>Documents</h1>
-      <p className="page-intro">Documents opened in this browser session.</p>
+      <p className="page-intro">Documents in your account.</p>
 
       {filtered.length === 0 ? (
         <EmptyState
           title="No matches"
-          message="No documents in this browser session match your search."
+          message="No documents in your account match your search."
         />
       ) : (
         <section className="card" aria-label="Document list">
