@@ -70,13 +70,14 @@ export function useDocument(): UseDocumentState & UseDocumentActions {
       setState((prev) => ({ ...prev, loading: false, uploadProgress: 100 }));
       return response;
     } catch (error) {
+      const normalized = toApiError(error, 'Upload failed');
       setState((prev) => ({
         ...prev,
         loading: false,
         uploadProgress: 0,
-        error: toApiError(error, 'Upload failed'),
+        error: normalized,
       }));
-      throw error;
+      throw normalized;
     }
   }, []);
 

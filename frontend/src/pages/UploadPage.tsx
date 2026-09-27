@@ -8,7 +8,7 @@ import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { ProcessingSteps, type ProcessingStep } from '../components/ProcessingSteps';
 import { PipelineTrack } from '../components/PipelineTrack';
-import { getUploadErrorMessage, getVerifyErrorMessage, safeMessage } from '../utils/messages';
+import { getClientUploadHint, getUploadErrorMessage, getVerifyErrorMessage, safeMessage } from '../utils/messages';
 import { setLocalPreview } from '../state/preview';
 import { addRecentDocument, getRecentDocumentIds } from '../state/recentDocuments';
 import { getDocument } from '../api/documents';
@@ -98,6 +98,11 @@ export function UploadPage() {
     }
     setUploadError(null);
     setDuplicateWarning(null);
+    const clientHint = getClientUploadHint(selectedFile);
+    if (clientHint) {
+      setUploadError(clientHint);
+      return;
+    }
     setStage('uploading');
     try {
       const uploaded = await upload(selectedFile, category);

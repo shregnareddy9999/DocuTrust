@@ -120,12 +120,13 @@ body {
 }
 
 .sidebar-brand__logo {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 6px;
   flex-shrink: 0;
   background: #fff;
-  padding: 4px;
+  padding: 2px;
+  object-fit: contain;
 }
 
 .sidebar-brand__text {
@@ -225,13 +226,14 @@ body {
 }
 
 .topbar__logo {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 6px;
   flex-shrink: 0;
-  background: var(--navy);
-  padding: 4px;
+  background: #fff;
+  padding: 2px;
   margin-right: 8px;
+  object-fit: contain;
 }
 
 .topbar__history {
@@ -257,35 +259,66 @@ body {
 }
 
 .topbar__search {
-  position: relative;
   display: flex;
   align-items: center;
   max-width: 420px;
   width: 100%;
   flex: 1 1 280px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  padding: 0 12px 0 10px;
+}
+
+.topbar__search:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: -1px;
+  border-color: transparent;
 }
 
 .topbar__search-icon {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
   color: var(--muted-2);
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   pointer-events: none;
+  flex-shrink: 0;
+  margin-right: 8px;
 }
 
 .topbar__search input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 36px;
-  padding: 0 12px 0 34px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-input);
-  background: var(--card);
+  padding: 0 8px 0 0;
+  border: none;
+  background: transparent;
   font: inherit;
   font-size: 14px;
   color: var(--text);
+}
+
+.topbar__search input:focus {
+  outline: none;
+}
+
+.topbar__search input::placeholder {
+  color: var(--muted-2);
+}
+
+.topbar__search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>");
+  background-size: 18px 18px;
+  background-position: center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.topbar__search input::-webkit-search-cancel-button:hover {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>");
 }
 
 .topbar__search input::placeholder {
@@ -1373,6 +1406,7 @@ th:last-child {
 
   .topbar__search {
     flex: 1 1 140px;
+    padding: 0 8px 0 8px;
   }
 
   .topbar__search input {
@@ -1570,15 +1604,17 @@ th:last-child {
 }
 
 .splash__logo {
-  width: 80px;
-  height: 80px;
-  border-radius: 20px;
+  width: 160px;
+  height: auto;
+  max-width: min(280px, 80vw);
+  border-radius: 12px;
   margin-bottom: 20px;
-  box-shadow: 
+  background: #fff;
+  padding: 12px;
+  object-fit: contain;
+  box-shadow:
     0 0 0 1px rgba(251, 191, 36, 0.2),
     0 20px 40px -10px rgba(0, 0, 0, 0.5);
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  padding: 8px;
 }
 
 .splash__name {
@@ -1691,11 +1727,18 @@ th:last-child {
 .auth-card__mark {
   display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border-radius: 8px;
-  background: var(--navy);
-  color: #fbbf24;
+  background: #fff;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.auth-card__mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .auth-card__intro {
@@ -1790,16 +1833,18 @@ th:last-child {
 .profile-avatar {
   display: inline-grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
-  background: var(--navy);
-  color: #fbbf24;
+  background: #fff;
+  border: 1px solid var(--border);
+  overflow: hidden;
 }
 
-.profile-avatar svg {
-  width: 22px;
-  height: 22px;
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .profile-header h2 {

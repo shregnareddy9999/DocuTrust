@@ -14,17 +14,24 @@ export class ApiError extends Error {
   }
 }
 
+function uploadCodeFromStatus(status: number, existingCode?: string): string {
+  if (existingCode && existingCode !== 'INTERNAL_ERROR' && existingCode !== 'HTTP_ERROR') {
+    return existingCode;
+  }
+  if (status === 413) return 'FILE_TOO_LARGE';
+  if (status === 415) return 'UNSUPPORTED_MEDIA_TYPE';
+  if (status === 422) return 'EMPTY_OR_CORRUPT_FILE';
+  if (status === 400) return 'INVALID_CATEGORY';
+  return existingCode ?? 'INTERNAL_ERROR';
+}
+
 async function parseErrorResponse(response: Response): Promise<ApiError> {
   let errorData: { error?: { code: string; message: string; details?: Record<string, unknown> } };
   try {
     errorData = await response.json();
   } catch {
-    return new ApiError(
-      'INTERNAL_ERROR',
-      `HTTP ${response.status}: ${response.statusText}`,
-      {},
-      response.status
-    );
+    const code = uploadCodeFromStatus(response.status);
+    return new ApiError(code, `HTTP ${response.status}: ${response.statusText}`, {}, response.status);
   }
 
   const error = errorData.error ?? {
@@ -33,7 +40,8 @@ async function parseErrorResponse(response: Response): Promise<ApiError> {
     details: {},
   };
 
-  return new ApiError(error.code, error.message, error.details ?? {}, response.status);
+  const code = uploadCodeFromStatus(response.status, error.code);
+  return new ApiError(code, error.message, error.details ?? {}, response.status);
 }
 
 export async function apiRequest<T>(

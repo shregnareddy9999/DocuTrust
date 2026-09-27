@@ -12,15 +12,6 @@
       rel="stylesheet"
     />
     <title>DocuTrust · Verification Console</title>
-    <script>
-      console.log('[index.html] Page loading');
-      window.addEventListener('error', (e) => {
-        console.error('[index.html] Global error:', e.error?.message || e.message, e.filename, e.lineno);
-      });
-      window.addEventListener('unhandledrejection', (e) => {
-        console.error('[index.html] Unhandled rejection:', e.reason);
-      });
-    </script>
   </head>
   <body>
     <div id="root">

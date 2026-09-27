@@ -3,10 +3,41 @@ export interface DemoSession {
   email: string;
 }
 
-const SPLASH_KEY = 'docutrust.splashDone';
-const SESSION_KEY = 'docutrust.demoSession';
-const LAST_ROUTE_KEY = 'docutrust.lastRoute';
 const REGISTERED_USERS_KEY = 'docutrust.registeredUsers';
+const LAST_ROUTE_KEY = 'docutrust.lastRoute';
+const STORAGE_KEY_PREFIX = 'docutrust.recentDocuments';
+const SESSION_KEY = 'docutrust.demoSession';
+
+function readSessionFromStorage(): DemoSession | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === 'object' && 'displayName' in parsed && 'email' in parsed) {
+      return parsed as DemoSession;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionToStorage(session: DemoSession | null): void {
+  try {
+    if (session) {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    } else {
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+  } catch {
+    // storage unavailable
+  }
+}
+
+/** Active demo session, restored from sessionStorage on load. */
+let activeSession: DemoSession | null = readSessionFromStorage();
+/** Splash completed during this page load only. */
+let splashDoneThisLoad = false;
 
 const sessionChangeListeners = new Set<() => void>();
 
@@ -28,40 +59,21 @@ function emitSessionChange(): void {
 }
 
 export function hasSplashBeenShown(): boolean {
-  // Always return false so splash shows on every page load/reload
-  return false;
+  return splashDoneThisLoad;
 }
 
 export function markSplashShown(): void {
-  // No-op - we don't persist splash state anymore
+  splashDoneThisLoad = true;
 }
 
 export function getDemoSession(): DemoSession | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as unknown;
-    if (
-      parsed &&
-      typeof parsed === 'object' &&
-      typeof (parsed as DemoSession).displayName === 'string' &&
-      typeof (parsed as DemoSession).email === 'string'
-    ) {
-      return parsed as DemoSession;
-    }
-    return null;
-  } catch {
-    return null;
-  }
+  return activeSession;
 }
 
 export function setDemoSession(session: DemoSession): void {
-  try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    emitSessionChange();
-  } catch {
-    // localStorage unavailable; the current tab can still proceed via memory if needed
-  }
+  activeSession = session;
+  writeSessionToStorage(session);
+  emitSessionChange();
 }
 
 export function getLastRoute(): string | null {
@@ -88,14 +100,14 @@ export function sessionInitials(displayName: string): string {
 }
 
 export function clearDemoSession(): void {
+  activeSession = null;
+  writeSessionToStorage(null);
   try {
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SPLASH_KEY);
     sessionStorage.removeItem(LAST_ROUTE_KEY);
-    emitSessionChange();
   } catch {
     // storage unavailable
   }
+  emitSessionChange();
 }
 
 function readRegisteredUsers(): string[] {
@@ -149,8 +161,6 @@ export function deleteDemoAccount(): void {
     }
     clearDemoSession();
   } catch {
-    // storage unavailable
+    clearDemoSession();
   }
 }
-
-const STORAGE_KEY_PREFIX = 'docutrust.recentDocuments';
