@@ -19,19 +19,47 @@ const BLOCKCHAIN_ERROR_TRANSLATIONS: Record<BlockchainErrorCode, string> = {
 const DEFAULT_NETWORK_MESSAGE =
   'Could not reach the server. Check your connection and try again.';
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ACCEPTED_UPLOAD_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']);
+
+export const UPLOAD_ERROR_COPY = {
+  FILE_TOO_LARGE: 'That file is too large. The maximum upload size is 10 MB.',
+  UNSUPPORTED_MEDIA_TYPE: 'That file type is not supported. Use a JPEG, PNG, or PDF.',
+  EMPTY_OR_CORRUPT_FILE: 'The file appears to be empty or unreadable. Try another file.',
+  INVALID_CATEGORY: 'The selected category is not recognised. Choose one of the listed categories.',
+} as const;
+
+export function getClientUploadHint(file: File): string | null {
+  if (file.size === 0) {
+    return UPLOAD_ERROR_COPY.EMPTY_OR_CORRUPT_FILE;
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return UPLOAD_ERROR_COPY.FILE_TOO_LARGE;
+  }
+  const name = file.name.toLowerCase();
+  const hasAcceptedExtension =
+    name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.pdf');
+  const type = (file.type || '').toLowerCase();
+  const hasAcceptedType = ACCEPTED_UPLOAD_TYPES.has(type);
+  if (!hasAcceptedType && !hasAcceptedExtension) {
+    return UPLOAD_ERROR_COPY.UNSUPPORTED_MEDIA_TYPE;
+  }
+  return null;
+}
+
 /**
  * Returns a safe, human-readable message from any thrown value. Never passes a raw
  * exception message, stack trace, or "[object Object]" to the screen.
  */
 export function safeMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    return error.message;
-  }
-  if (error instanceof TypeError) {
-    return DEFAULT_NETWORK_MESSAGE;
-  }
-  if (error instanceof Error && error.message && error.message !== '[object Object]') {
-    return error.message;
+    const mapped = getUploadErrorMessage(error);
+    if (mapped !== DEFAULT_NETWORK_MESSAGE) {
+      return mapped;
+    }
+    if (error.message && error.message !== '[object Object]') {
+      return error.message;
+    }
   }
   return DEFAULT_NETWORK_MESSAGE;
 }
@@ -46,7 +74,7 @@ export function toApiError(error: unknown, fallback: string): ApiError {
     return new ApiError('NETWORK_ERROR', DEFAULT_NETWORK_MESSAGE, {}, 0);
   }
   if (error instanceof Error && error.message) {
-    return new ApiError('UNKNOWN', error.message, {}, 0);
+    return new ApiError('UNKNOWN', fallback, {}, 0);
   }
   return new ApiError('UNKNOWN', fallback, {}, 0);
 }
@@ -70,18 +98,33 @@ export function getUploadErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     switch (error.code) {
       case 'FILE_TOO_LARGE':
-        return 'That file is too large. The maximum upload size is 10 MB.';
+        return UPLOAD_ERROR_COPY.FILE_TOO_LARGE;
       case 'UNSUPPORTED_MEDIA_TYPE':
-        return 'That file type is not supported. Use a JPEG, PNG, or PDF.';
+        return UPLOAD_ERROR_COPY.UNSUPPORTED_MEDIA_TYPE;
       case 'EMPTY_OR_CORRUPT_FILE':
-        return 'The file appears to be empty or unreadable. Try another file.';
+        return UPLOAD_ERROR_COPY.EMPTY_OR_CORRUPT_FILE;
       case 'INVALID_CATEGORY':
-        return 'The selected category is not recognised. Choose one of the listed categories.';
+        return UPLOAD_ERROR_COPY.INVALID_CATEGORY;
       default:
-        return error.message;
+        break;
+    }
+    switch (error.status) {
+      case 413:
+        return UPLOAD_ERROR_COPY.FILE_TOO_LARGE;
+      case 415:
+        return UPLOAD_ERROR_COPY.UNSUPPORTED_MEDIA_TYPE;
+      case 422:
+        return UPLOAD_ERROR_COPY.EMPTY_OR_CORRUPT_FILE;
+      case 400:
+        return UPLOAD_ERROR_COPY.INVALID_CATEGORY;
+      default:
+        break;
+    }
+    if (error.code === 'NETWORK_ERROR') {
+      return DEFAULT_NETWORK_MESSAGE;
     }
   }
-  return safeMessage(error);
+  return DEFAULT_NETWORK_MESSAGE;
 }
 
 export function getVerifyErrorMessage(error: unknown): string {

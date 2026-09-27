@@ -113,6 +113,16 @@ describe('UploadPage', () => {
     );
     renderUploadPage();
     expect(await screen.findByText('Loading document categories…')).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText('Cat')).toBeInTheDocument());
+  it('shows the empty-file message without navigating', async () => {
+    renderUploadPage();
+    await screen.findByText('1. Choose a category');
+    await userEvent.setup().click(screen.getByText('Academic Certificate'));
+    const file = new File([], 'empty.png', { type: 'image/png' });
+    fireEvent.change(screen.getByTestId('file-input'), { target: { files: [file] } });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Upload and verify' }));
+    expect(
+      await screen.findByText('The file appears to be empty or unreadable. Try another file.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Result placeholder')).not.toBeInTheDocument();
   });
 });

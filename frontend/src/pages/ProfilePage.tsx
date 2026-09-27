@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { getDemoSession, clearDemoSession, deleteDemoAccount } from '../state/demoAuth';
-import { ShieldIcon, LogOutIcon, TrashIcon } from '../components/icons';
+import { LogOutIcon, TrashIcon } from '../components/icons';
 import { useNavigate } from 'react-router-dom';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -28,7 +28,7 @@ export function ProfilePage() {
       <section className="card">
         <div className="profile-header">
           <span className="profile-avatar" aria-hidden="true">
-            <ShieldIcon />
+            <img src="/logo.png" alt="" />
           </span>
           <div>
             <h2>{displayName}</h2>

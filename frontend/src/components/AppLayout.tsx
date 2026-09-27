@@ -113,7 +113,7 @@ return (
 
       <aside className={`sidebar${menuOpen ? ' sidebar--open' : ''}`}>
         <div className="sidebar-brand">
-          <img src="/logo.svg" alt="DocuTrust" className="sidebar-brand__logo" />
+          <img src="/logo.png" alt="DocuTrust" className="sidebar-brand__logo" />
           <span className="sidebar-brand__text">
             <strong>DocuTrust</strong>
           </span>
@@ -141,7 +141,7 @@ return (
             <MenuIcon />
           </button>
 
-          <img src="/logo.svg" alt="DocuTrust" className="topbar__logo" />
+          <img src="/logo.png" alt="DocuTrust" className="topbar__logo" />
 
           <div className="topbar__history" role="group" aria-label="Page history">
             <button type="button" className="topbar__history-btn" aria-label="Go back" onClick={() => navigate(-1)}>
@@ -159,7 +159,6 @@ return (
           {canSearch ? (
             <label className="topbar__search">
               <SearchIcon className="topbar__search-icon" />
-              <span className="visually-hidden">Search local lists</span>
               <input
                 type="search"
                 placeholder="Search…"

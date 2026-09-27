@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldIcon, EyeIcon, EyeOffIcon } from '../components/icons';
+import { EyeIcon, EyeOffIcon } from '../components/icons';
 import { setDemoSession, isEmailRegistered, registerEmail } from '../state/demoAuth';
 
 interface AuthPageProps {
@@ -52,7 +52,7 @@ export function AuthPage({ mode }: AuthPageProps) {
       <div className="auth-card">
         <div className="auth-card__brand">
           <span className="auth-card__mark" aria-hidden="true">
-            <ShieldIcon />
+            <img src="/logo.png" alt="" />
           </span>
           <h1>DocuTrust</h1>
         </div>

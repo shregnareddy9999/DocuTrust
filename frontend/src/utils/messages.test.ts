@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { safeMessage, translateWarning, translateBlockchainError, getUploadErrorMessage } from './messages';
+import { safeMessage, translateWarning, translateBlockchainError, getUploadErrorMessage, getClientUploadHint } from './messages';
 import { ApiError } from '../api/client';
 
 describe('safeMessage', () => {
-  it('returns the error envelope message for ApiError', () => {
+  it('returns the documented upload copy for FILE_TOO_LARGE', () => {
     const err = new ApiError('FILE_TOO_LARGE', 'The file exceeds the maximum upload size.', {}, 413);
-    expect(safeMessage(err)).toBe('The file exceeds the maximum upload size.');
+    expect(safeMessage(err)).toBe('That file is too large. The maximum upload size is 10 MB.');
   });
 
-  it('returns the exception message for ordinary errors', () => {
-    expect(safeMessage(new Error('something broke'))).toBe('something broke');
+  it('does not leak ordinary exception text', () => {
+    expect(safeMessage(new Error('something broke'))).toBe(
+      'Could not reach the server. Check your connection and try again.'
+    );
   });
 
   it('never leaks "[object Object]" or raw non-Error values', () => {
@@ -59,6 +61,34 @@ describe('getUploadErrorMessage', () => {
   });
 
   it('falls back to a safe message for non-ApiError failures', () => {
-    expect(getUploadErrorMessage(new Error('boom'))).toBe('boom');
+    expect(getUploadErrorMessage(new Error('boom'))).toBe(
+      'Could not reach the server. Check your connection and try again.'
+    );
+  });
+
+  it('maps HTTP status when the error code is missing', () => {
+    expect(getUploadErrorMessage(new ApiError('HTTP_ERROR', 'x', {}, 413))).toBe(
+      'That file is too large. The maximum upload size is 10 MB.'
+    );
+    expect(getUploadErrorMessage(new ApiError('HTTP_ERROR', 'x', {}, 415))).toBe(
+      'That file type is not supported. Use a JPEG, PNG, or PDF.'
+    );
+    expect(getUploadErrorMessage(new ApiError('HTTP_ERROR', 'x', {}, 422))).toBe(
+      'The file appears to be empty or unreadable. Try another file.'
+    );
+  });
+});
+
+describe('getClientUploadHint', () => {
+  it('flags an empty file', () => {
+    expect(getClientUploadHint(new File([], 'empty.png', { type: 'image/png' }))).toBe(
+      'The file appears to be empty or unreadable. Try another file.'
+    );
+  });
+
+  it('flags an unsupported type', () => {
+    expect(getClientUploadHint(new File(['abc'], 'notes.txt', { type: 'text/plain' }))).toBe(
+      'That file type is not supported. Use a JPEG, PNG, or PDF.'
+    );
   });
 });
