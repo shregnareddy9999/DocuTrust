@@ -138,3 +138,59 @@ so the OCR-only outcome remains in history.
 No column on `blockchain_records`, nor the on-chain event itself, may ever contain a document byte,
 raw OCR text, or a value from `extracted_fields_json` / `fields_json`. See `blockchain.md` for the
 exact allowed payload.
+
+---
+
+## Core extension: students, government records, marksheet history (PROPOSED — needs project-lead approval)
+
+Additive only: no existing table or column is changed. All rows are synthetic demo data
+(`source_label = "synthetic-demo"`, `DEMO-` identifiers).
+
+### `students`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `student_ref` | str, unique | e.g. `DEMO-STU-101` |
+| `display_name` | str | obviously fictional (e.g. `Aarav Demo`) |
+| `aadhaar_hash` | str, nullable | one-way hash; the raw number is never stored |
+| `aadhaar_last4` | str(4), nullable | used only to display `XXXX XXXX 1234` |
+| `source_label` | str | always `"synthetic-demo"` |
+| `created_at` | datetime | |
+
+### `student_documents` (link table — `documents` is not modified)
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `student_id` | FK → students | |
+| `document_id` | FK → documents | unique together with `student_id` |
+| `version` | int | 1, 2, 3… per student + document category; older links are never removed |
+| `linked_at` | datetime | |
+
+### `government_records`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `student_id` | FK → students | |
+| `record_type` | str | e.g. `Caste Certificate (demo)` |
+| `fields_json` | text (JSON) | structured data, not a raw file |
+| `is_synthetic` | bool | always true in the MVP |
+| `source_label` | str | `"synthetic-demo"` |
+| `created_at` | datetime | |
+
+### `marksheets`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | one row per marksheet; a new marksheet never overwrites an old one |
+| `student_id` | FK → students | |
+| `semester` | int | |
+| `subjects_json` | text (JSON) | `{subject: marks}` |
+| `total` / `cgpa` | float, nullable | |
+| `source_label` | str | `"synthetic-demo"` |
+| `uploaded_at` | datetime | |
+
+Reviewer corrections continue to use the existing `review_actions` flow; no separate corrections
+table is introduced. Nothing in these tables is ever written on-chain.

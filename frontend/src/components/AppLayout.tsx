@@ -30,6 +30,7 @@ const NAV_MAIN: NavItem[] = [
   { to: '/', label: 'Dashboard', Icon: DashboardIcon, end: true },
   { to: '/verify', label: 'Upload Document', Icon: UploadIcon, end: true },
   { to: '/documents', label: 'Documents', Icon: DocumentsIcon },
+  { to: '/students', label: 'Students', Icon: ProfileIcon },
   { to: '/review-queue', label: 'Review Queue', Icon: ReviewIcon },
   { to: '/history', label: 'History', Icon: HistoryIcon },
   { to: '/blockchain-receipts', label: 'Blockchain Receipts', Icon: BlockchainIcon },

@@ -144,3 +144,58 @@ export interface HealthResponse {
   ocr_adapter: 'configured';
   blockchain: 'enabled' | 'disabled';
 }
+
+// ---- Core extension: student data (proposed in docs/api.md) ----
+export interface StudentSummary {
+  student_ref: string;
+  display_name: string;
+  aadhaar_masked: string | null;
+  source_label: string;
+}
+
+export interface StudentDocumentLink {
+  document_id: string;
+  category: string;
+  processing_state: Document['processing_state'];
+  version: number;
+  uploaded_at: string;
+  linked_at: string;
+}
+
+export interface GovernmentRecordItem {
+  id: string;
+  record_type: string;
+  fields: Record<string, string>;
+  is_synthetic: boolean;
+  source_label: string;
+  created_at: string;
+}
+
+export interface GovernmentRecordsResponse {
+  student_ref: string;
+  status: 'FOUND' | 'NO_LINKED_DOCUMENTS_FOUND';
+  source_label: string;
+  records: GovernmentRecordItem[];
+}
+
+export interface MarksheetItem {
+  id: string;
+  semester: number;
+  subjects: Record<string, number>;
+  total: number | null;
+  cgpa: number | null;
+  uploaded_at: string;
+}
+
+export interface MarksheetHistoryResponse {
+  student_ref: string;
+  source_label: string;
+  history: MarksheetItem[];
+  summary: {
+    available: boolean;
+    limited_history: boolean;
+    derived: boolean;
+    note: string;
+    points: string[];
+  };
+}
