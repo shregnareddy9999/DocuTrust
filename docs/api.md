@@ -253,3 +253,24 @@ request/category/action · `404` unknown resource · `409` operation not valid i
 - Blockchain failure is visible only via `blockchain_records`/the blockchain endpoint — it never
   changes the HTTP status or body of any verification endpoint.
 - The frontend must render every field list from `GET /document-types`, never a hardcoded copy.
+
+---
+
+## Core extension: student data endpoints (PROPOSED — needs project-lead approval)
+
+All under `/api/v1`. Errors use the standard envelope. New error codes: `STUDENT_NOT_FOUND` (404),
+`DOCUMENT_NOT_FOUND` (404), `DOCUMENT_ALREADY_LINKED` (409), and `PROCESSING_FAILED` (503 — a
+database failure; it is a technical failure, never a document verdict).
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /students` | `[{student_ref, display_name, aadhaar_masked, source_label}]` (never the hash or full number) |
+| `GET /students/{student_ref}/documents` | linked documents: `{document_id, category, processing_state, version, uploaded_at, linked_at}`, newest first |
+| `POST /students/{student_ref}/documents` | body `{document_id}` → `201`; creates the next version for that category |
+| `GET /students/{student_ref}/government-records` | `{student_ref, status, source_label, records[]}` where `status` is `FOUND` or `NO_LINKED_DOCUMENTS_FOUND` (a normal `200`; not an error and not a fraud signal) |
+| `POST /students/{student_ref}/government-records` | body `{record_type, fields}` → `201` (always stored as synthetic) |
+| `GET /students/{student_ref}/marksheets` | `{history[] (chronological), summary}`; `summary` is deterministic and marked `derived: true` |
+| `POST /students/{student_ref}/marksheets` | body `{semester, subjects, total?, cgpa?}` → `201`; always a new row |
+
+The marksheet `summary` is computed from the stored rows only (`domain/academic_summary.py`). It
+never invents data, states when history is limited, and never modifies the source records.
