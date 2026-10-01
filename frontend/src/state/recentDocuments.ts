@@ -326,7 +326,7 @@ export function useRecentDocuments(): RecentDocumentsState {
         if (!cancelled) {
           // Don't show error if some documents loaded successfully
           // Only show error if NO documents loaded AND there were rejections
-          if (hydrated.length === 0 && settled.some((item) => item.status === 'rejected')) {
+          if (hydrated.length === 0 && settled.some((item) => item.status !== 'fulfilled')) {
             setRows([]);
             setError('Could not load the documents in this browser session.');
           } else {

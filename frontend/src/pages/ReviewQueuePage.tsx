@@ -7,8 +7,7 @@ import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { ReviewIcon } from '../components/icons';
-
-const REVIEW_STATUSES = ['REVIEW_REQUIRED', 'INTEGRITY_MISMATCH'];
+import { needsHumanReview } from '../utils/reviewNavigation';
 
 export function ReviewQueuePage() {
   const { rows, loading, error, reload } = useRecentDocuments();
@@ -16,7 +15,7 @@ export function ReviewQueuePage() {
 
   const queued = useMemo(() => {
     const needsReview = rows.filter(
-      (row) => row.currentStatus && REVIEW_STATUSES.includes(row.currentStatus)
+      (row) => row.currentStatus && needsHumanReview(row.currentStatus)
     );
     const query = search.trim().toLowerCase();
     if (!query) return needsReview;

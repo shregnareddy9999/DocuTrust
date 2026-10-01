@@ -1,4 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 interface SplashPageProps {
   onFinished: () => void;
@@ -10,17 +15,17 @@ export function SplashPage({ onFinished }: SplashPageProps) {
   const finished = useRef(false);
   const [phase, setPhase] = useState<SplashPhase>('enter');
 
-  function finish(): void {
+  const finish = useCallback((): void => {
     if (finished.current) return;
     finished.current = true;
     onFinished();
-  }
+  }, [onFinished]);
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       finish();
     }
-  }, []);
+  }, [finish]);
 
   function handleAnimationEnd(): void {
     if (phase === 'enter') {

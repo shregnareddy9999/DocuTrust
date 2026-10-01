@@ -144,3 +144,13 @@ export interface HealthResponse {
   ocr_adapter: 'configured';
   blockchain: 'enabled' | 'disabled';
 }
+
+export interface AcademicSummaryRequest {
+  document_ids: string[];
+}
+
+export interface AcademicSummaryResponse {
+  summary: string;
+  documents_analyzed: number;
+  model: string;
+}

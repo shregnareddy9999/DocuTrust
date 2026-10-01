@@ -12,11 +12,53 @@ const TEST_VERIFICATION_ID = 'ver-demo-0001';
 const ROUTE = `/verifications/${TEST_VERIFICATION_ID}/review`;
 const PATH = '/verifications/:verificationId/review';
 
+function reviewableVerification(status = 'INTEGRITY_MISMATCH') {
+  return {
+    verification_id: TEST_VERIFICATION_ID,
+    document_id: 'doc-demo-0001',
+    status,
+    registry_record_key: 'DEMO-STU-001',
+    field_comparisons: [
+      { field: 'student_name', extracted_value: 'Aarav Demo', registry_value: 'Aarav Demo', matched: true },
+      { field: 'institution_name', extracted_value: 'Example Technical Institute', registry_value: 'Example Technical Institute', matched: true },
+      { field: 'student_id', extracted_value: 'DEMO-STU-001', registry_value: 'DEMO-STU-001', matched: true },
+      { field: 'course_name', extracted_value: 'B.Tech CSE', registry_value: 'B.Tech CSE', matched: true },
+      { field: 'semester_or_year', extracted_value: '6', registry_value: '5', matched: false },
+      { field: 'certificate_or_marksheet_id', extracted_value: 'DEMO-MARK-001', registry_value: 'DEMO-MARK-001', matched: true },
+    ],
+    rule_results: [
+      { rule_id: 'required_field_presence', passed: true, reason: 'All required fields present' },
+      { rule_id: 'field_match', passed: false, reason: 'semester_or_year does not match registry record DEMO-STU-001' },
+    ],
+    reason_codes: ['FIELD_MISMATCH:semester_or_year'],
+    is_current: true,
+    supersedes_verification_id: null,
+    review_actions: [],
+    created_at: new Date().toISOString(),
+  };
+}
+
 describe('ReviewPage', () => {
   beforeEach(() => {
     resetMockConfig();
     resetMockCounters();
     server.resetHandlers();
+    server.use(
+      http.get('*/api/v1/verifications/:verificationId', () =>
+        HttpResponse.json(reviewableVerification())
+      )
+    );
+  });
+
+  it('does not offer human review when the current result already matches the synthetic demo reference', async () => {
+    server.use(
+      http.get('*/api/v1/verifications/:verificationId', () =>
+        HttpResponse.json({ ...reviewableVerification('VERIFIED_MATCH'), reason_codes: ['ALL_FIELDS_MATCH'] })
+      )
+    );
+    renderWithRouter(<ReviewPage />, { route: ROUTE, path: PATH });
+    expect(await screen.findByText('No human review needed')).toBeInTheDocument();
+    expect(screen.queryByText('Record review')).not.toBeInTheDocument();
   });
 
   it('pre-fills the correction form with extracted values when CORRECT is chosen', async () => {

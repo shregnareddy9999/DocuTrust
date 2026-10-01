@@ -8,6 +8,7 @@ import { SyntheticDataBanner } from '../components/SyntheticDataBanner';
 import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
 import { safeMessage } from '../utils/messages';
+import { needsHumanReview } from '../utils/reviewNavigation';
 import type { VerificationStatus } from '../types/api';
 
 const ACTIONS = [
@@ -134,6 +135,33 @@ export function ReviewPage() {
 
   if (!verification) {
     return <ErrorState message="The verification could not be found." onRetry={() => fetchVerification(verificationId)} />;
+  }
+
+  if (!needsHumanReview(verification.status)) {
+    return (
+      <div className="page review-page">
+        <SyntheticDataBanner />
+        <section className="card review-complete">
+          <h1>No human review needed</h1>
+          <p>
+            This verification outcome does not require a reviewer action. Documents that match the
+            synthetic demo reference stay out of the review queue.
+          </p>
+          <div className="result-status-row">
+            <span className="result-label">Current verification status</span>
+            <StatusBadge status={verification.status} />
+          </div>
+          <div className="actions">
+            <Link
+              to={`/verifications/${verification.verification_id}`}
+              className="button button--primary"
+            >
+              View result
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   const extractedFields = extraction?.extracted_fields ?? {};

@@ -3,14 +3,16 @@
 Owned by Task 01 — see tasks/01-foundation.md.
 """
 
+from pathlib import Path
 from typing import Literal
+
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=Path(__file__).resolve().parents[1] / ".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="forbid",
@@ -38,6 +40,11 @@ class Settings(BaseSettings):
     OCR_LANGUAGE: str = "en"
     OCR_TIMEOUT_SECONDS: int = 30
     LOW_CONFIDENCE_THRESHOLD: float = 0.70
+
+    AI_ENGINE: Literal["ollama", "fake"] = "ollama"
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3.2:latest"
+    AI_TIMEOUT_SECONDS: int = 60
 
     REGISTRY_MODE: Literal["synthetic_demo"] = "synthetic_demo"
 
@@ -85,6 +92,13 @@ class Settings(BaseSettings):
     def validate_ocr_timeout(cls, v: int) -> int:
         if v <= 0:
             raise ValueError("OCR_TIMEOUT_SECONDS must be > 0")
+        return v
+
+    @field_validator("AI_TIMEOUT_SECONDS")
+    @classmethod
+    def validate_ai_timeout(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("AI_TIMEOUT_SECONDS must be > 0")
         return v
 
     @field_validator("BLOCKCHAIN_CHAIN_ID")

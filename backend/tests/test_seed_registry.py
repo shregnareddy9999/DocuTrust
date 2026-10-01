@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import json
 import re
-
-import pytest
+import shutil
+from pathlib import Path
+from uuid import uuid4
 
 from app.fixtures import generate_samples, seed_registry
 from app.models.document import DocumentCategory
@@ -155,22 +156,27 @@ def test_sample_font_is_truetype_not_bitmap_default():
     assert isinstance(font, ImageFont.FreeTypeFont)
 
 
-def test_all_eleven_sample_documents_exist(tmp_path, monkeypatch):
+def test_all_eleven_sample_documents_exist(monkeypatch):
+    tmp_path = Path(__file__).resolve().parents[1] / ".test-tmp" / uuid4().hex
+    tmp_path.mkdir(parents=True)
     monkeypatch.setattr(generate_samples, "OUTPUT_DIR", tmp_path)
-    generate_samples.main()
+    try:
+        generate_samples.main()
 
-    expected_files = {
-        "academic_certificate_match.png",
-        "academic_certificate_mismatch.png",
-        "academic_certificate_unregistered.png",
-        "academic_certificate_degraded.png",
-        "institutional_id_match.png",
-        "institutional_id_mismatch.png",
-        "pan_like_demo_match.png",
-        "pan_like_demo_mismatch.png",
-        "government_certificate_match.png",
-        "government_certificate_mismatch.png",
-        "academic_certificate_match.pdf",
-    }
-    actual_files = {p.name for p in tmp_path.iterdir()}
-    assert expected_files == actual_files
+        expected_files = {
+            "academic_certificate_match.png",
+            "academic_certificate_mismatch.png",
+            "academic_certificate_unregistered.png",
+            "academic_certificate_degraded.png",
+            "institutional_id_match.png",
+            "institutional_id_mismatch.png",
+            "pan_like_demo_match.png",
+            "pan_like_demo_mismatch.png",
+            "government_certificate_match.png",
+            "government_certificate_mismatch.png",
+            "academic_certificate_match.pdf",
+        }
+        actual_files = {p.name for p in tmp_path.iterdir()}
+        assert expected_files == actual_files
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)

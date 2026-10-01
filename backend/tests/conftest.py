@@ -2,8 +2,9 @@
 """Shared fixtures: temporary database and fake adapters."""
 
 import os
-import tempfile
+import shutil
 from pathlib import Path
+from uuid import uuid4
 
 # Set test-only environment values before importing app configuration.
 os.environ.setdefault("BLOCKCHAIN_ENABLED", "false")
@@ -39,10 +40,12 @@ def make_test_engine(database_url: str) -> Engine:
 @pytest.fixture(scope="function")
 def temp_db_path():
     """Create a temporary SQLite database file for one test."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
-        db_path = f.name
+    tmp_root = Path(__file__).resolve().parents[1] / ".test-tmp"
+    tmp_root.mkdir(exist_ok=True)
+    db_path = tmp_root / f"{uuid4().hex}.db"
+    db_path.touch()
 
-    yield db_path
+    yield str(db_path)
 
     try:
         os.unlink(db_path)
@@ -53,8 +56,15 @@ def temp_db_path():
 @pytest.fixture(scope="function")
 def temp_upload_dir():
     """Create a temporary upload directory for one test."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield Path(tmpdir)
+    tmp_root = Path(__file__).resolve().parents[1] / ".test-tmp"
+    tmp_root.mkdir(exist_ok=True)
+    tmpdir = tmp_root / uuid4().hex
+    tmpdir.mkdir()
+
+    try:
+        yield tmpdir
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 @pytest.fixture(scope="function")
@@ -75,6 +85,10 @@ def test_settings(temp_db_path: str, temp_upload_dir: Path) -> Settings:
         OCR_LANGUAGE="en",
         OCR_TIMEOUT_SECONDS=30,
         LOW_CONFIDENCE_THRESHOLD=0.70,
+        AI_ENGINE="fake",
+        OLLAMA_BASE_URL="http://localhost:11434",
+        OLLAMA_MODEL="llama3.2:latest",
+        AI_TIMEOUT_SECONDS=60,
         REGISTRY_MODE="synthetic_demo",
         BLOCKCHAIN_ENABLED=False,
         BLOCKCHAIN_RPC_URL="http://127.0.0.1:8545",

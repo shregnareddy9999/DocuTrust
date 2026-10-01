@@ -52,7 +52,12 @@ export function DocumentsPage() {
 
   return (
     <div className="page documents-page">
-      <h1>Documents</h1>
+      <header className="page-header">
+        <h1>Documents</h1>
+        <Link to="/academic-summary" className="button button--secondary">
+          AI Academic Summary
+        </Link>
+      </header>
       <p className="page-intro">Documents in your account.</p>
 
       {filtered.length === 0 ? (

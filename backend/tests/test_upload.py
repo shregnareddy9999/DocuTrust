@@ -2,8 +2,9 @@
 
 import io
 import os
-import tempfile
+import shutil
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -40,10 +41,12 @@ def make_test_engine(database_url: str):
 
 @pytest.fixture(scope="function")
 def temp_db_path():
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
-        db_path = f.name
+    tmp_root = Path(__file__).resolve().parents[1] / ".test-tmp"
+    tmp_root.mkdir(exist_ok=True)
+    db_path = tmp_root / f"{uuid4().hex}.db"
+    db_path.touch()
 
-    yield db_path
+    yield str(db_path)
 
     try:
         os.unlink(db_path)
@@ -53,8 +56,15 @@ def temp_db_path():
 
 @pytest.fixture(scope="function")
 def temp_upload_dir():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield Path(tmpdir)
+    tmp_root = Path(__file__).resolve().parents[1] / ".test-tmp"
+    tmp_root.mkdir(exist_ok=True)
+    tmpdir = tmp_root / uuid4().hex
+    tmpdir.mkdir()
+
+    try:
+        yield tmpdir
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 @pytest.fixture(scope="function")

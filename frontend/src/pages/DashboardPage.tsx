@@ -37,7 +37,6 @@ export function DashboardPage() {
         rows,
         (status) => status === 'REVIEW_REQUIRED' || status === 'INTEGRITY_MISMATCH'
       ),
-      noReference: countStatus(rows, (status) => status === 'NO_TRUSTED_RECORD'),
     }),
     [rows]
   );
@@ -79,13 +78,10 @@ export function DashboardPage() {
           <span className="stat-value">{stats.matched}</span>
           <span className="stat-label">Matched</span>
         </div>
+
         <div className="stat-card">
           <span className="stat-value">{stats.needsReview}</span>
           <span className="stat-label">Needs review</span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-value">{stats.noReference}</span>
-          <span className="stat-label">No reference</span>
         </div>
       </div>
 
@@ -115,6 +111,7 @@ export function DashboardPage() {
                     <span>{new Date(row.uploadedAt).toLocaleDateString()}</span>
                   </span>
                 </Link>
+
                 {row.currentStatus ? (
                   <StatusBadge status={row.currentStatus} />
                 ) : (
