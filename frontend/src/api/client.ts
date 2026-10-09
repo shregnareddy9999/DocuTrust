@@ -93,6 +93,20 @@ export async function apiRequest<T>(
   }
 }
 
+export async function apiBlobRequest(
+  path: string,
+  options: RequestInit = {}
+): Promise<Blob> {
+  const url = `${API_BASE_URL}${path}`;
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return response.blob();
+}
+
 export function getApiBaseUrl(): string {
   return API_BASE_URL;
 }

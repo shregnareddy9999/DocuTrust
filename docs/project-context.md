@@ -64,8 +64,10 @@ project lead.
   no-record / mismatch / review-needed / failed, with evidence.
 - Production-grade authentication, authorization, or multi-tenant deployment.
 - Public blockchain deployment, or putting documents/personal data on-chain.
-- Any AI/ML model beyond OCR (see `problem-statement-mapping.md` for the explicit deferral and
-  rationale) — deterministic rules are the MVP's "intelligence," not a learned model.
+- Any AI/ML model beyond OCR in the verification pipeline (see `problem-statement-mapping.md` for
+  the explicit deferral and rationale) — deterministic rules remain the MVP's "intelligence," not a
+  learned model. The separate AI Academic Summary feature is a local, non-verdict demo summary over
+  already-extracted synthetic academic text (`academic-summary.md`).
 - Guaranteeing OCR correctness or proving document authenticity in any absolute sense.
 
 ## Key limitations (state these in every demo)

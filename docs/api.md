@@ -77,6 +77,24 @@ Errors: `400 INVALID_CATEGORY`, `413 FILE_TOO_LARGE`, `415 UNSUPPORTED_MEDIA_TYP
 ```
 `404 DOCUMENT_NOT_FOUND` if unknown.
 
+## `GET /documents/{document_id}/file`
+
+Returns the original uploaded file for an existing document using `Content-Disposition: inline`.
+This endpoint is for same-application preview/download and never exposes server-side file paths.
+
+`200` with the original file bytes and the stored MIME type.
+
+Errors: `404 DOCUMENT_NOT_FOUND`, `404 DOCUMENT_FILE_NOT_FOUND`.
+
+## `DELETE /documents/{document_id}`
+
+Deletes a document only when it has no verification history. This is intended for removing an
+uploaded document before it becomes part of the verification/review/blockchain audit trail.
+
+`204` with no body.
+
+Errors: `404 DOCUMENT_NOT_FOUND`, `409 DOCUMENT_HAS_HISTORY`.
+
 ## `GET /documents/{document_id}/extraction`
 
 `200`
@@ -238,6 +256,35 @@ If `BLOCKCHAIN_ENABLED=false`: `200` with `recording_status: "NOT_REQUESTED"` an
 `null`, including `error_code`. `404 VERIFICATION_NOT_FOUND` only if the verification itself doesn't
 exist.
 
+## `POST /academic-summary`
+
+Generates a stateless demo academic summary from OCR/extraction data for selected academic
+documents. If a selected academic document has no successful extraction yet, this endpoint may run
+OCR and field extraction once. It does not create a summary row and does not change verification or
+blockchain state.
+
+```json
+{
+  "document_ids": ["uuid-1", "uuid-2"]
+}
+```
+
+`200`
+```json
+{
+  "summary": "Concise academic summary from supplied OCR text.",
+  "documents_analyzed": 2,
+  "model": "llama3.2:latest"
+}
+```
+
+Errors: `400 NO_DOCUMENTS_SELECTED`, `400 NON_ACADEMIC_DOCUMENT`, `404 DOCUMENT_NOT_FOUND`,
+`409 EXTRACTION_NOT_READY`, `503 AI_SUMMARY_UNAVAILABLE`.
+
+The summary is never a verification outcome. It must not say the documents are genuine, verified,
+fraudulent, or government-authenticated, and it must not invent missing marks, grades, CGPA,
+percentages, dates, institutions, subjects, achievements, or ranks.
+
 ---
 
 ## HTTP status summary
@@ -245,7 +292,8 @@ exist.
 `200` read/verify success · `201` resource created (upload, review action) · `400` malformed
 request/category/action · `404` unknown resource · `409` operation not valid in current state ·
 `413` upload exceeds limit · `415` unsupported file type · `422` semantically invalid payload ·
-`500` unexpected internal error (generic message + `correlation_id`).
+`500` unexpected internal error (generic message + `correlation_id`) · `503` local AI summary
+service unavailable.
 
 ## Contract rules
 

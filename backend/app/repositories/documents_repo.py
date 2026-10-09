@@ -37,3 +37,10 @@ def list_recent(session: Session, limit: int) -> list[Document]:
         .limit(limit)
     )
     return list(session.scalars(stmt).all())
+
+
+def delete_with_extractions(session: Session, document: Document) -> None:
+    for extraction in list(document.extractions):
+        session.delete(extraction)
+    session.delete(document)
+    session.flush()

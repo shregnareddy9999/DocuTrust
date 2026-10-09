@@ -10,6 +10,7 @@ import { BlockchainReceiptsPage } from './pages/BlockchainReceiptsPage';
 import { DemoDashboardPage } from './pages/DemoDashboardPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { DocumentsPage } from './pages/DocumentsPage';
+import { AcademicSummaryPage } from './pages/AcademicSummaryPage';
 import { ReviewQueuePage } from './pages/ReviewQueuePage';
 import { HistoryPage } from './pages/HistoryPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/verify" element={<UploadPage />} />
             <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/academic-summary" element={<AcademicSummaryPage />} />
             <Route path="/documents/:documentId" element={<DocumentDetailPage />} />
             <Route path="/review-queue" element={<ReviewQueuePage />} />
             <Route path="/history" element={<HistoryPage />} />

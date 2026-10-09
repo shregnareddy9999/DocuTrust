@@ -19,11 +19,16 @@ Registry is populated by `python -m app.fixtures.seed_registry` (idempotent — 
 | `pan_like_demo_mismatch.png` | `DEMO-PAN-001` | `INTEGRITY_MISMATCH` | `date_of_birth` is `1999-02-20` instead of the registered `1999-01-15`. |
 | `government_certificate_match.png` | `DEMO-GOV-001` | `VERIFIED_MATCH` | Exact registry values. |
 | `government_certificate_mismatch.png` | `DEMO-GOV-001` | `INTEGRITY_MISMATCH` | `issuing_authority_label` is `"Example Alternate Demo Authority"` instead of the registered `"Example Demo Authority"`. |
+| `academic_summary_semester_1.png` | *(summary demo only)* | *(not a verification fixture)* | Synthetic Semester 1 marksheet for the AI Academic Summary page. |
+| `academic_summary_semester_2.png` | *(summary demo only)* | *(not a verification fixture)* | Synthetic Semester 2 marksheet for the AI Academic Summary page. |
+| `academic_summary_semester_3.png` | *(summary demo only)* | *(not a verification fixture)* | Synthetic Semester 3 marksheet for the AI Academic Summary page. |
 
 ## Notes
 
 - Every document carries the footer `SYNTHETIC DEMO DOCUMENT — NOT A REAL CERTIFICATE`, legible at
   projector distance (`NFR-08`).
+- The academic summary sample images also carry the title `DOCUTRUST DEMO / SYNTHETIC DOCUMENT` and
+  use only fictional demo identity data.
 - Mismatch/unregistered override values (the specific alternate name, date, etc.) are free choices —
   `docs/category-schemas.md` only requires that they differ from the registry fixture in the stated
   field, not that they take any particular value.

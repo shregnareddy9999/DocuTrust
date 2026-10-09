@@ -28,6 +28,9 @@ a trained classifier producing a fraud score. This is intentional, not an oversi
   (e.g., flagging OCR confidence outliers or unusual field-length distributions across processed
   documents) can be proposed to the project lead — see `decisions.md` D-06. It stays an *input to
   human review*, never an automatic verdict.
+- The AI Academic Summary feature is separate from verification: it uses local Ollama only to
+  summarize already-extracted synthetic academic text, and it must not produce a score, status, or
+  document verdict (`academic-summary.md`).
 
 ## On the forgery-detection clause
 
