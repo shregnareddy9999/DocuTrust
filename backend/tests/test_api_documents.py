@@ -83,6 +83,39 @@ def test_get_document_shape(client):
     assert body["uploaded_at"].endswith("Z")
 
 
+def test_get_document_file_serves_original_upload(client):
+    document_id = _upload(client).json()["document_id"]
+    response = client.get(f"/api/v1/documents/{document_id}/file")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("image/png")
+    assert response.content.startswith(b"\x89PNG")
+
+
+def test_delete_document_without_history(client):
+    document_id = _upload(client).json()["document_id"]
+    response = client.delete(f"/api/v1/documents/{document_id}")
+    assert response.status_code == 204
+
+    missing = client.get(f"/api/v1/documents/{document_id}")
+    assert missing.status_code == 404
+
+
+def test_delete_document_with_verification_history_is_rejected(client, monkeypatch):
+    from app.adapters.ocr.fake_adapter import create_fake_adapter
+
+    monkeypatch.setattr(
+        "app.services.ocr_service.get_ocr_adapter",
+        lambda: create_fake_adapter(mode="clean"),
+    )
+    document_id = _upload(client).json()["document_id"]
+    verify = client.post(f"/api/v1/documents/{document_id}/verify")
+    assert verify.status_code == 200
+
+    response = client.delete(f"/api/v1/documents/{document_id}")
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "DOCUMENT_HAS_HISTORY"
+
+
 def test_unknown_document_404(client):
     response = client.get("/api/v1/documents/ffffffffffffffffffffffffffffffff")
     assert response.status_code == 404

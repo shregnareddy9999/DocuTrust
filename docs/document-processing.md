@@ -69,9 +69,10 @@
 - File access is scoped to the one document being processed via a path-safety helper
   (`backend/app/services/upload_service.py`) — no user input is ever concatenated directly into a
   filesystem path.
-- Extracted text returned to the frontend/API is treated as **display data only** — nothing in this
-  project passes extracted text into a prompt or command execution context, so there is no prompt-
-  injection surface to defend here (this project has no LLM/agent loop).
+- Extracted text returned to the frontend/API is treated as **display data**. The isolated AI
+  Academic Summary feature may pass persisted OCR text to a local Ollama prompt; it is documented in
+  `academic-summary.md` and must never feed model output back into verification, matching, review,
+  blockchain recording, or file processing.
 
 ## Processing-state contract (authoritative — resolves D-19)
 

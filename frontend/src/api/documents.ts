@@ -1,4 +1,4 @@
-import { apiRequest } from './client';
+import { apiBlobRequest, apiRequest } from './client';
 import type { UploadResponse, Document, ExtractionResponse } from '../types/api';
 
 export async function uploadDocument(
@@ -21,4 +21,14 @@ export async function getDocument(documentId: string): Promise<Document> {
 
 export async function getExtraction(documentId: string): Promise<ExtractionResponse> {
   return apiRequest<ExtractionResponse>(`/documents/${documentId}/extraction`);
+}
+
+export async function getDocumentFile(documentId: string): Promise<Blob> {
+  return apiBlobRequest(`/documents/${documentId}/file`);
+}
+
+export async function deleteDocument(documentId: string): Promise<void> {
+  return apiRequest<void>(`/documents/${documentId}`, {
+    method: 'DELETE',
+  });
 }

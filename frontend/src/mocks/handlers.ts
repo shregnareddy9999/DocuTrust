@@ -336,6 +336,43 @@ export const handlers = [
     });
   }),
 
+  http.get(`${BASE}/documents/:documentId/file`, () => {
+    const png = Uint8Array.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+      0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41,
+      0x54, 0x08, 0xd7, 0x63, 0xf8, 0xff, 0xff, 0x3f,
+      0x00, 0x05, 0xfe, 0x02, 0xfe, 0xdc, 0xcc, 0x59,
+      0xe7, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
+      0x44, 0xae, 0x42, 0x60, 0x82,
+    ]);
+    return new HttpResponse(png, {
+      headers: {
+        'content-type': 'image/png',
+        'content-disposition': 'inline; filename="marksheet-demo.png"',
+      },
+    });
+  }),
+
+  http.delete(`${BASE}/documents/:documentId`, async () => {
+    const { err, slow } = getMockConfig();
+    if (slow) await delay(400);
+    if (err === 'DOCUMENT_HAS_HISTORY') {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'DOCUMENT_HAS_HISTORY',
+            message: 'Documents with verification history cannot be deleted.',
+          },
+        },
+        { status: 409 }
+      );
+    }
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post(`${BASE}/documents/:documentId/verify`, async ({ params }) => {
     const { mock, slow, net } = getMockConfig();
     if (net) return HttpResponse.error();
@@ -343,6 +380,31 @@ export const handlers = [
     const status = (mock ?? 'VERIFIED_MATCH') as VerificationStatus;
     const documentId = String(params.documentId);
     return HttpResponse.json({ verification_id: nextVerificationId(), status, document_id: documentId });
+  }),
+
+  http.post(`${BASE}/academic-summary`, async ({ request }) => {
+    const { slow, net, err } = getMockConfig();
+    if (net) return HttpResponse.error();
+    if (slow) await delay(900);
+    if (err === 'AI_SUMMARY_UNAVAILABLE') {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'AI_SUMMARY_UNAVAILABLE',
+            message: 'Could not generate the academic summary. Confirm that Ollama is running locally.',
+          },
+        },
+        { status: 503 }
+      );
+    }
+    const body = (await request.json()) as { document_ids?: string[] };
+    const count = body.document_ids?.length ?? 0;
+    return HttpResponse.json({
+      summary:
+        'Aarav Demo submitted synthetic academic documents for B.Tech CSE. Semester details are available only where they appear in the OCR text.',
+      documents_analyzed: count,
+      model: 'llama3.2:latest',
+    });
   }),
 
   http.post(`${BASE}/verifications/:verificationId/review`, async ({ request, params }) => {

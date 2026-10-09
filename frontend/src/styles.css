@@ -643,6 +643,49 @@ select:focus {
   text-underline-offset: 3px;
 }
 
+.link-button {
+  border: 0;
+  background: transparent;
+  color: var(--link);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+  text-align: left;
+}
+
+.link-button:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--subdued);
+  color: var(--text);
+}
+
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* ===== Tables ===== */
 table {
   width: 100%;
@@ -1004,6 +1047,18 @@ th:last-child {
   border-radius: var(--radius-card);
   background: var(--card);
   margin: 0 0 12px;
+}
+
+.academic-summary-preview__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.academic-summary-preview__header h2 {
+  margin: 0;
 }
 
 .confidence-note {
@@ -1857,6 +1912,69 @@ th:last-child {
   margin: 2px 0 0;
   color: var(--muted);
   font-size: 14px;
+}
+
+.academic-summary-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+}
+
+.academic-summary-file-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.academic-summary-note {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 14px 0 0;
+}
+
+.academic-summary-result {
+  margin-top: 18px;
+}
+
+.academic-summary-result h2 {
+  margin-top: 0;
+}
+
+.academic-summary-result p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.academic-summary-meta {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 18px 0 0;
+}
+
+.academic-summary-meta div {
+  background: var(--subdued);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 12px;
+}
+
+.academic-summary-meta dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.academic-summary-meta dd {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 /* §2.4/2.6 — safe-area insets (notched phones). Requires viewport-fit=cover in index.html. */

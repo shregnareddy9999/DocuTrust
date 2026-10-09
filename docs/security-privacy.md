@@ -19,8 +19,9 @@ result.
 - **Upload limits:** MIME allowlist (JPEG/PNG/PDF) + `MAX_UPLOAD_MB` + `MAX_PDF_PAGES` enforced at
   the API boundary before any parsing library touches the bytes.
 - **Storage location:** `UPLOAD_DIR` is outside any directory served statically by the frontend or
-  backend; there is no "download original file" endpoint in the MVP API surface (`api.md`) — only
-  extracted/derived data is ever returned over HTTP.
+  backend. Original files are served only through the document-specific preview endpoint documented
+  in `api.md`; the endpoint looks up the document row, resolves the server-generated `storage_key`
+  through the path-safety helper, and never exposes local filesystem paths.
 - **Logging:** never log file contents, raw OCR text, `extracted_fields_json` values, or the
   contents of `.env`. Application logs may include `document_id`, `verification_id`, status
   transitions, and error codes only.

@@ -155,7 +155,7 @@ def test_sample_font_is_truetype_not_bitmap_default():
     assert isinstance(font, ImageFont.FreeTypeFont)
 
 
-def test_all_eleven_sample_documents_exist(tmp_path, monkeypatch):
+def test_all_sample_documents_exist(tmp_path, monkeypatch):
     monkeypatch.setattr(generate_samples, "OUTPUT_DIR", tmp_path)
     generate_samples.main()
 
@@ -171,6 +171,9 @@ def test_all_eleven_sample_documents_exist(tmp_path, monkeypatch):
         "government_certificate_match.png",
         "government_certificate_mismatch.png",
         "academic_certificate_match.pdf",
+        "academic_summary_semester_1.png",
+        "academic_summary_semester_2.png",
+        "academic_summary_semester_3.png",
     }
     actual_files = {p.name for p in tmp_path.iterdir()}
     assert expected_files == actual_files

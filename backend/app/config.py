@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     OCR_TIMEOUT_SECONDS: int = 30
     LOW_CONFIDENCE_THRESHOLD: float = 0.70
 
+    AI_SUMMARY_OLLAMA_URL: str = "http://localhost:11434"
+    AI_SUMMARY_MODEL: str = "llama3.2:latest"
+    AI_SUMMARY_TIMEOUT_SECONDS: int = 60
+
     REGISTRY_MODE: Literal["synthetic_demo"] = "synthetic_demo"
 
     BLOCKCHAIN_ENABLED: bool = True
@@ -85,6 +89,13 @@ class Settings(BaseSettings):
     def validate_ocr_timeout(cls, v: int) -> int:
         if v <= 0:
             raise ValueError("OCR_TIMEOUT_SECONDS must be > 0")
+        return v
+
+    @field_validator("AI_SUMMARY_TIMEOUT_SECONDS")
+    @classmethod
+    def validate_ai_summary_timeout(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("AI_SUMMARY_TIMEOUT_SECONDS must be > 0")
         return v
 
     @field_validator("BLOCKCHAIN_CHAIN_ID")

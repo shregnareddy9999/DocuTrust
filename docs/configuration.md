@@ -28,6 +28,11 @@ OCR_LANGUAGE=en
 OCR_TIMEOUT_SECONDS=30
 LOW_CONFIDENCE_THRESHOLD=0.70
 
+# AI Academic Summary
+AI_SUMMARY_OLLAMA_URL=http://localhost:11434
+AI_SUMMARY_MODEL=llama3.2:latest
+AI_SUMMARY_TIMEOUT_SECONDS=60
+
 # Registry
 REGISTRY_MODE=synthetic_demo        # only value supported in MVP
 
@@ -56,7 +61,7 @@ VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
 ## Rules
 
 - `config.py` validates: `MAX_UPLOAD_MB > 0`, `MAX_PDF_PAGES > 0`, `ALLOWED_MIME_TYPES` non-empty,
-  `LOW_CONFIDENCE_THRESHOLD` in `(0, 1)`, and — if `BLOCKCHAIN_ENABLED=true` — that
+  `LOW_CONFIDENCE_THRESHOLD` in `(0, 1)`, `AI_SUMMARY_TIMEOUT_SECONDS > 0`, and — if `BLOCKCHAIN_ENABLED=true` — that
   `BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CONTRACT_ADDRESS`, and `CHAIN_EVENT_SALT` are all non-empty.
 - If `BLOCKCHAIN_ENABLED=true` but the contract address is missing, the app must refuse to start
   with a specific error — never silently fall back to `BLOCKCHAIN_ENABLED=false` or fake a

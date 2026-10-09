@@ -41,6 +41,12 @@ export interface ExtractionResponse {
   status: 'SUCCEEDED' | 'FAILED';
 }
 
+export interface AcademicSummaryResponse {
+  summary: string;
+  documents_analyzed: number;
+  model: string;
+}
+
 export interface FieldComparison {
   field: string;
   extracted_value: string | null;

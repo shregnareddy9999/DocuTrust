@@ -74,6 +74,45 @@ _MISMATCH_OVERRIDES = {
 }
 _UNREGISTERED_OVERRIDE = {"student_id": "DEMO-STU-999"}
 
+ACADEMIC_SUMMARY_SEMESTERS = [
+    {
+        "filename": "academic_summary_semester_1.png",
+        "semester": "1",
+        "marksheet_id": "DEMO-2026-SEM-001",
+        "subjects": [
+            ("Engineering Mathematics I", "82"),
+            ("Programming Fundamentals", "88"),
+            ("Engineering Physics", "79"),
+            ("Communication Skills", "85"),
+        ],
+        "issue_date": "2026-01-20",
+    },
+    {
+        "filename": "academic_summary_semester_2.png",
+        "semester": "2",
+        "marksheet_id": "DEMO-2026-SEM-002",
+        "subjects": [
+            ("Engineering Mathematics II", "84"),
+            ("Data Structures", "91"),
+            ("Digital Logic", "86"),
+            ("Environmental Studies", "80"),
+        ],
+        "issue_date": "2026-05-20",
+    },
+    {
+        "filename": "academic_summary_semester_3.png",
+        "semester": "3",
+        "marksheet_id": "DEMO-2026-SEM-003",
+        "subjects": [
+            ("Database Systems", "89"),
+            ("Object Oriented Programming", "92"),
+            ("Computer Organization", "83"),
+            ("Discrete Mathematics", "87"),
+        ],
+        "issue_date": "2026-09-20",
+    },
+]
+
 
 def _font(size: int) -> ImageFont.FreeTypeFont:
     """Load a real TTF. Bitmap default fonts are too small for PaddleOCR."""
@@ -170,6 +209,56 @@ def build_variant(category: str, overrides: dict | None = None) -> Image.Image:
     return render_document(category, fields)
 
 
+def render_academic_summary_document(data: dict) -> Image.Image:
+    img = Image.new("RGB", (WIDTH, HEIGHT), "white")
+    draw = ImageDraw.Draw(img)
+
+    title_font = _font(32)
+    label_font = _font(21)
+    footer_font = _font(18)
+
+    draw.text((MARGIN, 34), "DOCUTRUST DEMO / SYNTHETIC DOCUMENT", fill="black", font=title_font)
+    draw.text((MARGIN, 78), "Demo Academic Marksheet", fill="black", font=label_font)
+    draw.line([(MARGIN, 112), (WIDTH - MARGIN, 112)], fill="black", width=2)
+
+    rows = [
+        ("Student Name", "Aarav Demo"),
+        ("Student ID", "DEMO-2026-001"),
+        ("Institution", "Oriental University"),
+        ("Course", "B.Tech Computer Science and Engineering"),
+        ("Semester", data["semester"]),
+        ("Marksheet ID", data["marksheet_id"]),
+        ("Issue Date", data["issue_date"]),
+    ]
+
+    y = 132
+    for label, value in rows:
+        draw.text((MARGIN, y), f"{label}:", fill="black", font=label_font)
+        draw.text((MARGIN + 360, y), value, fill="black", font=label_font)
+        y += 38
+
+    y += 8
+    draw.text((MARGIN, y), "Subjects and Marks:", fill="black", font=label_font)
+    y += 38
+    for subject, marks in data["subjects"]:
+        draw.text((MARGIN + 24, y), subject, fill="black", font=label_font)
+        draw.text((MARGIN + 650, y), marks, fill="black", font=label_font)
+        y += 36
+
+    draw.line([(MARGIN, HEIGHT - 90), (WIDTH - MARGIN, HEIGHT - 90)], fill="black", width=1)
+    draw.text((MARGIN, HEIGHT - 70), FOOTER_TEXT, fill="black", font=footer_font)
+    return img
+
+
+def generate_academic_summary_samples() -> None:
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    for data in ACADEMIC_SUMMARY_SEMESTERS:
+        render_academic_summary_document(data).save(
+            OUTPUT_DIR / data["filename"],
+            optimize=True,
+        )
+
+
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -192,6 +281,8 @@ def main() -> None:
         build_variant(category, _MISMATCH_OVERRIDES[category]).save(
             OUTPUT_DIR / f"{category}_mismatch.png", optimize=True
         )
+
+    generate_academic_summary_samples()
 
     generated = sorted(p.name for p in OUTPUT_DIR.iterdir())
     print(f"Generated {len(generated)} sample documents in {OUTPUT_DIR}:")

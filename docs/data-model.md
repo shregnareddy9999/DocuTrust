@@ -128,6 +128,9 @@ so the OCR-only outcome remains in history.
   (`backend/app/fixtures/cleanup_expired.py` — see Task 12) deletes the file and blanks
   `raw_ocr_json` while leaving `extracted_fields_json` and all verification/review/blockchain rows
   intact for audit purposes.
+- A user-initiated document delete is allowed only before any verification history exists for that
+  document. Once a `verification_results` row exists, deletion is rejected so review and blockchain
+  history remain intact.
 - Synthetic registry rows and demo fixtures are exempt from retention deletion.
 - This applies to the MVP demo environment only; a production deployment needs a real data-retention
   and deletion policy signed off by whoever owns compliance for that deployment — explicitly out of
