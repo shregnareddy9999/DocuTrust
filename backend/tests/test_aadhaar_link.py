@@ -54,6 +54,27 @@ class FakeSupabaseClient:
                 "demo_aadhaar_ref": "AAD-10002",
                 "mobile_number": "9000005002",
             },
+            {
+                "id": "citizen-3",
+                "demo_ref": "CIT-20999",
+                "demo_name": "Nisha Demo",
+                "demo_aadhaar_ref": "AAD-20999",
+                "mobile_number": "9000005999",
+            },
+            {
+                "id": "citizen-4",
+                "demo_ref": "CIT-10004",
+                "demo_name": "Siya Demo",
+                "demo_aadhaar_ref": "AAD-10004",
+                "mobile_number": "9000005004",
+            },
+            {
+                "id": "citizen-5",
+                "demo_ref": "CIT-30000",
+                "demo_name": "Dev Demo",
+                "demo_aadhaar_ref": "AAD-30000",
+                "mobile_number": None,
+            },
         ]
         self.linked = [
             {
@@ -76,6 +97,20 @@ class FakeSupabaseClient:
                 "document_type": "BANK_ACCOUNT",
                 "demo_document_ref": "BNK-60002",
                 "display_value": "Bank Account reference: BNK-60002",
+            },
+            {
+                "id": "link-custom",
+                "citizen_id": "citizen-3",
+                "document_type": "SCHOLARSHIP",
+                "demo_document_ref": "SCH-99001",
+                "display_value": "Scholarship reference: SCH-99001",
+            },
+            {
+                "id": "link-pan-20004",
+                "citizen_id": "citizen-4",
+                "document_type": "PAN",
+                "demo_document_ref": "PAN-20004",
+                "display_value": "PAN Card reference: PAN-20004",
             },
         ]
 
@@ -133,6 +168,98 @@ def test_aadhaar_link_upload_reads_supabase_and_cleans_temp_files(
     assert list(temp_upload_dir.iterdir()) == []
 
 
+def test_aadhaar_link_upload_accepts_supabase_only_reference_without_code_fixture(
+    client,
+    temp_upload_dir: Path,
+    test_settings,
+    monkeypatch,
+    fake_supabase,
+):
+    monkeypatch.setattr(aadhaar_service, "settings", test_settings)
+
+    response = client.post(
+        "/api/v1/aadhaar-link",
+        files={"file": ("aadhaar_AAD-20999.png", _png_bytes("AAD-20999"), "image/png")},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["citizen"]["citizen_ref"] == "CIT-20999"
+    assert data["citizen"]["demo_mobile_placeholder"] == "9000005999"
+    assert data["summary"]["linked_record_count"] == 1
+    assert data["linked_documents"][0]["demo_document_ref"] == "SCH-99001"
+    assert data["linked_documents"][0]["document_type_label"] == "Synthetic Demo Record"
+    assert data["linked_documents"][0]["issuer_label"] == "Synthetic demo registry"
+    assert data["linked_documents"][0]["asset_ref"] is None
+    assert data["linked_documents"][0]["status_label"] == "Listed in synthetic registry"
+    assert list(temp_upload_dir.iterdir()) == []
+
+
+def test_aadhaar_link_upload_uses_convention_based_sample_preview_for_new_supabase_record(
+    client,
+    temp_upload_dir: Path,
+    test_settings,
+    monkeypatch,
+    fake_supabase,
+):
+    monkeypatch.setattr(aadhaar_service, "settings", test_settings)
+
+    response = client.post(
+        "/api/v1/aadhaar-link",
+        files={"file": ("aadhaar_AAD-10004.png", _png_bytes("AAD-10004"), "image/png")},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["citizen"]["citizen_ref"] == "CIT-10004"
+    assert data["linked_documents"][0]["demo_document_ref"] == "PAN-20004"
+    assert data["linked_documents"][0]["asset_ref"] == "PAN-20004"
+    assert data["linked_documents"][0]["asset_mime_type"] == "image/png"
+    assert list(temp_upload_dir.iterdir()) == []
+
+
+def test_aadhaar_link_upload_returns_not_found_for_unknown_supabase_reference(
+    client,
+    temp_upload_dir: Path,
+    test_settings,
+    monkeypatch,
+    fake_supabase,
+):
+    monkeypatch.setattr(aadhaar_service, "settings", test_settings)
+
+    response = client.post(
+        "/api/v1/aadhaar-link",
+        files={"file": ("aadhaar_AAD-99999.png", _png_bytes("AAD-99999"), "image/png")},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "AADHAAR_REFERENCE_NOT_FOUND"
+    assert "No matching synthetic Aadhaar reference" in response.json()["error"]["message"]
+    assert list(temp_upload_dir.iterdir()) == []
+
+
+def test_aadhaar_link_upload_handles_citizen_with_no_linked_records(
+    client,
+    temp_upload_dir: Path,
+    test_settings,
+    monkeypatch,
+    fake_supabase,
+):
+    monkeypatch.setattr(aadhaar_service, "settings", test_settings)
+
+    response = client.post(
+        "/api/v1/aadhaar-link",
+        files={"file": ("aadhaar_AAD-30000.png", _png_bytes("AAD-30000"), "image/png")},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["citizen"]["citizen_ref"] == "CIT-30000"
+    assert data["summary"]["linked_record_count"] == 0
+    assert data["linked_documents"] == []
+    assert list(temp_upload_dir.iterdir()) == []
+
+
 def test_aadhaar_link_upload_rejects_non_aadhaar_demo_card(
     client,
     temp_upload_dir: Path,
@@ -185,3 +312,11 @@ def test_aadhaar_link_asset_unknown_reference_returns_404(client):
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "AADHAAR_ASSET_NOT_FOUND"
+
+
+def test_aadhaar_link_asset_serves_convention_based_sample(client):
+    response = client.get("/api/v1/aadhaar-link/assets/PAN-20004")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("image/png")
+    assert response.content.startswith(b"\x89PNG")

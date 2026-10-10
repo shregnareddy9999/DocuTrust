@@ -13,7 +13,6 @@ from fastapi import UploadFile
 from app.config import settings
 from app.fixtures.aadhaar_link_data import (
     AADHAAR_UPLOAD_MARKER,
-    DOCUMENT_ORDER,
     DOCUMENT_TYPE_LABELS,
     LINKED_ASSETS,
 )
@@ -28,7 +27,13 @@ from app.services.upload_service import (
 )
 
 
-AADHAAR_REF_PATTERN = re.compile(r"AAD-1000[12]", re.IGNORECASE)
+AADHAAR_REF_PATTERN = re.compile(r"AAD-\d{5,12}", re.IGNORECASE)
+ASSET_MIME_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".pdf": "application/pdf",
+}
 
 
 class AadhaarLinkError(Exception):
@@ -58,6 +63,37 @@ def _headers(service_role_key: str) -> dict[str, str]:
         "apikey": service_role_key,
         "Authorization": f"Bearer {service_role_key}",
     }
+
+
+def _sample_documents_dir() -> Path:
+    return (Path(__file__).resolve().parents[1] / "fixtures" / "sample_documents").resolve()
+
+
+def _asset_filename_for_ref(document_ref: str, extension: str) -> str | None:
+    normalized_ref = re.sub(r"[^a-z0-9]+", "_", document_ref.lower()).strip("_")
+    if not normalized_ref:
+        return None
+    return f"aadhaar_link_{normalized_ref}{extension}"
+
+
+def _find_asset_file(document_ref: str) -> tuple[Path, str, str] | None:
+    base_dir = _sample_documents_dir()
+    asset = LINKED_ASSETS.get(document_ref)
+    candidates: list[tuple[str, str]] = []
+    if asset is not None:
+        candidates.append((asset.asset_filename, asset.mime_type))
+
+    for extension, mime_type in ASSET_MIME_TYPES.items():
+        filename = _asset_filename_for_ref(document_ref, extension)
+        if filename:
+            candidates.append((filename, mime_type))
+
+    for filename, mime_type in candidates:
+        path = (base_dir / filename).resolve()
+        if base_dir in path.parents and path.exists() and path.is_file():
+            return path, mime_type, filename
+
+    return None
 
 
 async def validate_temporary_aadhaar_upload(file: UploadFile) -> str | None:
@@ -253,6 +289,7 @@ def _build_response(
     for row in linked_documents:
         document_ref = str(row.get("demo_document_ref", ""))
         asset = LINKED_ASSETS.get(document_ref)
+        asset_file = _find_asset_file(document_ref)
         document_type = str(row.get("document_type", "UNKNOWN"))
         rows.append(
             {
@@ -262,8 +299,8 @@ def _build_response(
                 "demo_document_ref": document_ref,
                 "display_value": str(row.get("display_value", "")),
                 "issuer_label": asset.issuer_label if asset else "Synthetic demo registry",
-                "asset_ref": document_ref if asset else None,
-                "asset_mime_type": asset.mime_type if asset else None,
+                "asset_ref": document_ref if asset_file else None,
+                "asset_mime_type": asset_file[1] if asset_file else None,
                 "status_label": asset.status_label if asset else "Listed in synthetic registry",
                 "demo_mobile_placeholder": _mobile_placeholder(
                     document_type,
@@ -272,8 +309,6 @@ def _build_response(
                 ),
             }
         )
-
-    rows.sort(key=lambda item: DOCUMENT_ORDER.get(item["demo_document_ref"], 999))
 
     return {
         "lookup_id": f"aadhaar-link-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
@@ -322,13 +357,8 @@ def _mobile_placeholder(
 
 
 def get_asset_file(document_ref: str) -> tuple[Path, str, str]:
-    asset = LINKED_ASSETS.get(document_ref)
-    if asset is None:
+    asset_file = _find_asset_file(document_ref)
+    if asset_file is None:
         raise AadhaarAssetNotFoundError(document_ref)
 
-    base_dir = (Path(__file__).resolve().parents[1] / "fixtures" / "sample_documents").resolve()
-    path = (base_dir / asset.asset_filename).resolve()
-    if base_dir not in path.parents or not path.exists():
-        raise AadhaarAssetNotFoundError(document_ref)
-
-    return path, asset.mime_type, asset.asset_filename
+    return asset_file
