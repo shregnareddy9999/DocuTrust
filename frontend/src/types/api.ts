@@ -182,3 +182,17 @@ export interface AadhaarLinkResponse {
     last_sync_label: string;
   };
 }
+
+export interface AadhaarMessageRequest {
+  message: string;
+  idempotency_key: string;
+}
+
+export interface AadhaarMessageResponse {
+  citizen_ref: string;
+  recipient_name: string;
+  masked_mobile: string;
+  sms_status: 'accepted' | 'failed';
+  voice_status: 'initiated' | 'failed' | 'not_attempted';
+  message: string;
+}

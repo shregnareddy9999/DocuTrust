@@ -53,6 +53,28 @@ network the demo runs on. This is deliberate and documented, not an oversight:
   checked against a static config value) is an acceptable **optional** MVP hardening step — track it
   as a candidate post-MVP task, not a blocker.
 
+### Aadhaar Link messaging exception
+
+The Aadhaar Link SMS reminder endpoint is the approved exception to the open-endpoint MVP rule: it
+requires a Supabase bearer token before any messaging workflow can run. The backend resolves the
+recipient mobile number from the trusted Supabase synthetic citizen record and never trusts a phone
+number supplied by the frontend.
+
+Because the MVP has no documented role table or employee-authorization schema, this endpoint
+authorizes only a valid Supabase-authenticated user. Adding role-based authorization would require a
+separate approved contract/schema change.
+
+This workflow uses Twilio only when explicitly enabled on the backend. Automated tests use the fake
+provider and must not send real SMS messages or place real calls. Responses may include a masked
+mobile number and safe SMS/voice statuses, but never full phone numbers, message bodies, Twilio
+credentials, or provider secrets. Duplicate-submission and rate safeguards are in-memory for the
+demo and are not durable across backend restarts or multiple workers.
+
+Twilio acceptance is not delivery proof. The endpoint reports that Twilio accepted an SMS or call
+create request; it does not claim SMS delivery, call answer, or call completion. Before enabling
+real sending, the operator must confirm Twilio trial restrictions, sender/caller capabilities,
+recipient eligibility, geographic permissions, end-user consent, and India SMS/voice requirements.
+
 ## Retention and deletion (resolves D-12)
 
 See `data-model.md` "Retention" — `RETENTION_DAYS` (default 7) governs deletion of raw file bytes

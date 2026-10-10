@@ -3,9 +3,16 @@ import { ErrorState } from '../components/ErrorState';
 import { LoadingState } from '../components/LoadingState';
 import { UploadDropzone } from '../components/UploadDropzone';
 import { ApiError } from '../api/client';
-import { getAadhaarAssetUrl, uploadAadhaarLinkDocument } from '../api/aadhaarLink';
-import type { AadhaarLinkedDocument, AadhaarLinkResponse } from '../types/api';
+import {
+  getAadhaarAssetUrl,
+  sendAadhaarReminderMessage,
+  uploadAadhaarLinkDocument,
+} from '../api/aadhaarLink';
+import { MessageIcon } from '../components/icons';
+import type { AadhaarLinkedDocument, AadhaarLinkResponse, AadhaarMessageResponse } from '../types/api';
 import { getClientUploadHint, getUploadErrorMessage } from '../utils/messages';
+
+const MESSAGE_MAX_CHARS = 320;
 
 function documentInitial(label: string): string {
   return label
@@ -19,6 +26,19 @@ function documentInitial(label: string): string {
 
 function isPdf(row: AadhaarLinkedDocument): boolean {
   return row.asset_mime_type === 'application/pdf';
+}
+
+function maskMobile(mobile: string): string {
+  const digits = mobile.replace(/\D/g, '');
+  if (digits.length < 4) return 'XXXX';
+  return `XXXXXX${digits.slice(-4)}`;
+}
+
+function createIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `aadhaar-message-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function PreviewPanel({
@@ -55,7 +75,126 @@ function PreviewPanel({
   );
 }
 
-function CitizenSummary({ result }: { result: AadhaarLinkResponse }) {
+function MessageComposerModal({
+  result,
+  onClose,
+}: {
+  result: AadhaarLinkResponse;
+  onClose: () => void;
+}) {
+  const [message, setMessage] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [response, setResponse] = useState<AadhaarMessageResponse | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  const trimmed = message.trim();
+  const tooLong = message.length > MESSAGE_MAX_CHARS;
+  const canSend = Boolean(trimmed) && !tooLong && !sending && !response;
+  const maskedMobile = result.citizen.demo_mobile_placeholder
+    ? maskMobile(result.citizen.demo_mobile_placeholder)
+    : 'No registered mobile';
+
+  async function handleSend() {
+    if (!canSend) return;
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+
+    setSending(true);
+    setSendError(null);
+    try {
+      const delivery = await sendAadhaarReminderMessage(
+        result.citizen.citizen_ref,
+        trimmed,
+        createIdempotencyKey()
+      );
+      setResponse(delivery);
+    } catch (error) {
+      if (error instanceof ApiError || error instanceof Error) {
+        setSendError(error.message);
+      } else {
+        setSendError('Could not submit the reminder request.');
+      }
+      setConfirming(false);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={sending ? undefined : onClose}>
+      <section
+        className="modal aadhaar-message-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="aadhaar-message-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="modal__header">
+          <h3 id="aadhaar-message-title">Send SMS reminder</h3>
+          <button type="button" className="modal__close" aria-label="Close SMS composer" onClick={onClose} disabled={sending}>
+            x
+          </button>
+        </div>
+        <div className="modal__body">
+          <div className="aadhaar-message-recipient">
+            <span>Recipient</span>
+            <strong>{result.citizen.demo_name}</strong>
+            <span>{maskedMobile}</span>
+          </div>
+
+          <label className="form-field aadhaar-message-field">
+            <span>Custom SMS message</span>
+            <textarea
+              value={message}
+              onChange={(event) => {
+                setMessage(event.target.value);
+                setConfirming(false);
+                setResponse(null);
+                setSendError(null);
+              }}
+              disabled={sending || Boolean(response)}
+              rows={6}
+              maxLength={MESSAGE_MAX_CHARS + 20}
+            />
+          </label>
+          <p className={tooLong ? 'error-inline' : 'note'} role={tooLong ? 'alert' : undefined}>
+            {message.length}/{MESSAGE_MAX_CHARS} characters
+          </p>
+          {confirming && !response ? (
+            <p className="note" role="status">
+              Confirm sending this SMS to {result.citizen.demo_name} at {maskedMobile}. The voice reminder will only be attempted if the SMS request is accepted.
+            </p>
+          ) : null}
+          {sendError ? <p className="error-inline" role="alert">{sendError}</p> : null}
+          {response ? (
+            <p className="note" role="status">
+              {response.message}
+            </p>
+          ) : null}
+        </div>
+        <div className="modal__footer">
+          <button type="button" className="button button--secondary" onClick={onClose} disabled={sending}>
+            Cancel
+          </button>
+          <button type="button" className="button button--primary" onClick={handleSend} disabled={!canSend}>
+            {sending ? 'Sending...' : confirming ? 'Confirm Send' : 'Send'}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function CitizenSummary({
+  result,
+  onOpenMessage,
+}: {
+  result: AadhaarLinkResponse;
+  onOpenMessage: () => void;
+}) {
   return (
     <section className="card aadhaar-citizen-card" aria-label="Synthetic citizen summary">
       <div className="aadhaar-citizen-top">
@@ -77,7 +216,17 @@ function CitizenSummary({ result }: { result: AadhaarLinkResponse }) {
           {result.citizen.demo_mobile_placeholder ? (
             <div className="aadhaar-id-chip">
               <span>Synthetic demo mobile</span>
-              <strong>{result.citizen.demo_mobile_placeholder}</strong>
+              <span className="aadhaar-mobile-row">
+                <strong>{result.citizen.demo_mobile_placeholder}</strong>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={`Send SMS reminder to ${result.citizen.demo_name}`}
+                  onClick={onOpenMessage}
+                >
+                  <MessageIcon />
+                </button>
+              </span>
             </div>
           ) : null}
         </div>
@@ -141,6 +290,7 @@ export function AadhaarLinkPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [result, setResult] = useState<AadhaarLinkResponse | null>(null);
   const [preview, setPreview] = useState<AadhaarLinkedDocument | null>(null);
+  const [messageComposerOpen, setMessageComposerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -205,7 +355,7 @@ export function AadhaarLinkPage() {
 
       {result ? (
         <>
-          <CitizenSummary result={result} />
+          <CitizenSummary result={result} onOpenMessage={() => setMessageComposerOpen(true)} />
           <section className="card aadhaar-documents-card" aria-label="Linked synthetic records">
             <div className="aadhaar-section-header">
               <div>
@@ -235,6 +385,9 @@ export function AadhaarLinkPage() {
       ) : null}
 
       {preview ? <PreviewPanel row={preview} onClose={() => setPreview(null)} /> : null}
+      {result && messageComposerOpen ? (
+        <MessageComposerModal result={result} onClose={() => setMessageComposerOpen(false)} />
+      ) : null}
     </div>
   );
 }

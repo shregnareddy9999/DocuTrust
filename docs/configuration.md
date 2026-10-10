@@ -37,6 +37,15 @@ AI_SUMMARY_TIMEOUT_SECONDS=60
 SUPABASE_URL=                       # backend-only Supabase project URL
 SUPABASE_SERVICE_ROLE_KEY=          # backend-only; never expose through Vite
 
+# Aadhaar Link messaging
+AADHAAR_MESSAGING_ENABLED=false     # real sending is opt-in; false by default
+AADHAAR_MESSAGING_PROVIDER=twilio   # twilio for runtime, fake for automated tests only
+AADHAAR_MESSAGE_MAX_CHARS=320
+AADHAAR_MESSAGE_RATE_LIMIT_SECONDS=30
+TWILIO_ACCOUNT_SID=                  # backend-only; never expose to frontend
+TWILIO_AUTH_TOKEN=                   # backend-only; never expose to frontend
+TWILIO_PHONE_NUMBER=                 # backend-only Twilio sender/caller number in E.164 format
+
 # Registry
 REGISTRY_MODE=synthetic_demo        # only value supported in MVP
 
@@ -72,6 +81,13 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 - If `BLOCKCHAIN_ENABLED=true` but the contract address is missing, the app must refuse to start
   with a specific error — never silently fall back to `BLOCKCHAIN_ENABLED=false` or fake a
   `CONFIRMED` result.
+- Aadhaar Link messaging is disabled unless `AADHAAR_MESSAGING_ENABLED=true`. Runtime sending uses
+  `AADHAAR_MESSAGING_PROVIDER=twilio`; automated tests set `fake` and must never contact Twilio.
+  Duplicate/rate safeguards are in-memory for the demo and reset on backend restart.
+- Twilio credentials are backend-only. They must never be exposed through frontend `VITE_`
+  variables, API responses, or logs. Before enabling real sending, confirm the Twilio account,
+  sender number, recipient number, geographic permissions, and India SMS/voice requirements allow
+  the requested traffic.
 - Tests inject their own temporary `DATABASE_URL` (a temp SQLite file or `:memory:`), a temp
   `UPLOAD_DIR`, `fake_adapter` OCR/blockchain implementations, and a throwaway `CHAIN_EVENT_SALT` —
   never the developer's real `.env`.

@@ -46,6 +46,14 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
 
+    AADHAAR_MESSAGING_ENABLED: bool = False
+    AADHAAR_MESSAGING_PROVIDER: Literal["twilio", "fake"] = "twilio"
+    AADHAAR_MESSAGE_MAX_CHARS: int = 320
+    AADHAAR_MESSAGE_RATE_LIMIT_SECONDS: int = 30
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
+
     REGISTRY_MODE: Literal["synthetic_demo"] = "synthetic_demo"
 
     BLOCKCHAIN_ENABLED: bool = True
@@ -108,6 +116,20 @@ class Settings(BaseSettings):
             raise ValueError("SUPABASE_URL must be an http(s) URL")
         return v.rstrip("/")
 
+    @field_validator("AADHAAR_MESSAGE_MAX_CHARS")
+    @classmethod
+    def validate_aadhaar_message_max_chars(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("AADHAAR_MESSAGE_MAX_CHARS must be > 0")
+        return v
+
+    @field_validator("AADHAAR_MESSAGE_RATE_LIMIT_SECONDS")
+    @classmethod
+    def validate_aadhaar_message_rate_limit(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("AADHAAR_MESSAGE_RATE_LIMIT_SECONDS must be >= 0")
+        return v
+
     @field_validator("BLOCKCHAIN_CHAIN_ID")
     @classmethod
     def validate_chain_id(cls, v: int) -> int:
@@ -145,6 +167,17 @@ class Settings(BaseSettings):
                 raise ValueError("BLOCKCHAIN_CONTRACT_ADDRESS must be set when BLOCKCHAIN_ENABLED=true")
             if not self.CHAIN_EVENT_SALT:
                 raise ValueError("CHAIN_EVENT_SALT must be set when BLOCKCHAIN_ENABLED=true")
+        return self
+
+    @model_validator(mode="after")
+    def validate_messaging_config(self) -> "Settings":
+        if self.AADHAAR_MESSAGING_ENABLED and self.AADHAAR_MESSAGING_PROVIDER == "twilio":
+            if not self.TWILIO_ACCOUNT_SID:
+                raise ValueError("TWILIO_ACCOUNT_SID must be set when Aadhaar messaging uses Twilio")
+            if not self.TWILIO_AUTH_TOKEN:
+                raise ValueError("TWILIO_AUTH_TOKEN must be set when Aadhaar messaging uses Twilio")
+            if not self.TWILIO_PHONE_NUMBER:
+                raise ValueError("TWILIO_PHONE_NUMBER must be set when Aadhaar messaging uses Twilio")
         return self
 
 
