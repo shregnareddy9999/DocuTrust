@@ -115,16 +115,3 @@ DOCUMENT_TYPE_LABELS = {
     "BANK_ACCOUNT": "Bank Account Demo",
     "VOTER_ID": "Voter Record Demo",
 }
-
-
-DOCUMENT_ORDER = {
-    "PAN-20001": 10,
-    "DL-30001": 20,
-    "BRC-40001": 30,
-    "MOB-50001": 40,
-    "BNK-60001": 50,
-    "VTR-70001": 60,
-    "PAN-20002": 10,
-    "MOB-50002": 20,
-    "BNK-60002": 30,
-}

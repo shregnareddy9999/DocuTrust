@@ -217,9 +217,18 @@ export function AadhaarLinkPage() {
               </button>
             </div>
             <div className="aadhaar-doc-list">
-              {result.linked_documents.map((row) => (
-                <LinkedDocumentRow key={row.id} row={row} onPreview={setPreview} />
-              ))}
+              {result.linked_documents.length > 0 ? (
+                result.linked_documents.map((row) => (
+                  <LinkedDocumentRow key={row.id} row={row} onPreview={setPreview} />
+                ))
+              ) : (
+                <div className="aadhaar-doc-row aadhaar-doc-row--static">
+                  <span className="aadhaar-doc-main">
+                    <span className="aadhaar-doc-title">No linked synthetic records found</span>
+                    <span className="aadhaar-doc-meta">This synthetic Aadhaar reference exists, but Supabase has no linked records for it.</span>
+                  </span>
+                </div>
+              )}
             </div>
           </section>
         </>

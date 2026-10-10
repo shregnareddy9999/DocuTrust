@@ -112,4 +112,36 @@ describe('AadhaarLinkPage', () => {
     expect(screen.getByText('No sample document')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('handles an existing synthetic citizen with no linked records', async () => {
+    server.use(
+      http.post('*/api/v1/aadhaar-link', () =>
+        HttpResponse.json({
+          lookup_id: 'aadhaar-link-demo-empty',
+          source: 'synthetic-demo',
+          reference_detected: true,
+          citizen: {
+            citizen_ref: 'CIT-30000',
+            demo_name: 'Dev Demo',
+            aadhaar_ref: 'AAD-30000',
+            masked_aadhaar: 'DEMO-XXXX-0000',
+            demo_mobile_placeholder: null,
+          },
+          linked_documents: [],
+          summary: {
+            linked_record_count: 0,
+            blockchain_seed: 'local-demo-seed',
+            last_sync_label: 'Synthetic demo registry snapshot',
+          },
+        })
+      )
+    );
+
+    renderPage();
+    await chooseFile('aadhaar_AAD-30000.png', 'image/png');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Upload & Find Links' }));
+    expect(await screen.findByText('Dev Demo')).toBeInTheDocument();
+    expect(screen.getByText('0 Records')).toBeInTheDocument();
+    expect(screen.getByText('No linked synthetic records found')).toBeInTheDocument();
+  });
 });
