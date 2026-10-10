@@ -60,8 +60,15 @@ export function BlockchainReceiptsPage() {
   if (filteredReceipts.length === 0) {
     return (
       <div className="page blockchain-receipts-page">
-        <h1>Blockchain Receipts</h1>
-        <p className="page-intro">On-chain recording status for compared documents.</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'flex-start' }}>
+          <div>
+            <h1>Blockchain Receipts</h1>
+            <p className="page-intro">On-chain recording status for compared documents.</p>
+          </div>
+          <Link to="/blockchain-receipts/verify-tx" className="button button--primary">
+            Verify Blockchain
+          </Link>
+        </div>
         <div className="card" style={{ marginBottom: '16px' }}>
           <label className="form-field" style={{ maxWidth: '400px' }}>
             <span>Search by Verification ID</span>
@@ -90,8 +97,15 @@ export function BlockchainReceiptsPage() {
 
   return (
     <div className="page blockchain-receipts-page">
-      <h1>Blockchain Receipts</h1>
-      <p className="page-intro">On-chain recording status for compared documents.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'flex-start' }}>
+        <div>
+          <h1>Blockchain Receipts</h1>
+          <p className="page-intro">On-chain recording status for compared documents.</p>
+        </div>
+        <Link to="/blockchain-receipts/verify-tx" className="button button--primary">
+          Verify Blockchain
+        </Link>
+      </div>
 
       <div className="card" style={{ marginBottom: '16px' }}>
         <label className="form-field" style={{ maxWidth: '400px' }}>
@@ -139,12 +153,12 @@ export function BlockchainReceiptsPage() {
                         blockchain={{
                           verification_id: receipt.verificationId,
                           recording_status: receipt.blockchainStatus,
-                          chain_id: receipt.blockchainStatus !== 'NOT_REQUESTED' ? 31337 : null,
-                          contract_address: receipt.blockchainStatus !== 'NOT_REQUESTED' ? '0x5FbDB2315678afecb367f032d93F642f64180aa3' : null,
-                          transaction_hash: receipt.blockchainStatus !== 'NOT_REQUESTED' ? '0x6b1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2' : null,
-                          event_digest: receipt.blockchainStatus !== 'NOT_REQUESTED' ? '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c' : null,
-                          submitted_at: receipt.blockchainStatus !== 'NOT_REQUESTED' ? new Date().toISOString() : null,
-                          confirmed_at: receipt.blockchainStatus === 'CONFIRMED' ? new Date().toISOString() : null,
+                          chain_id: null,
+                          contract_address: null,
+                          transaction_hash: null,
+                          event_digest: null,
+                          submitted_at: null,
+                          confirmed_at: null,
                           error_code: null,
                         }}
                       />
