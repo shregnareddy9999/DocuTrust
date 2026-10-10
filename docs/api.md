@@ -285,6 +285,17 @@ The summary is never a verification outcome. It must not say the documents are g
 fraudulent, or government-authenticated, and it must not invent missing marks, grades, CGPA,
 percentages, dates, institutions, subjects, achievements, or ranks.
 
+## `DELETE /account`
+
+Deletes the currently signed-in Supabase Auth user. The frontend sends the user's Supabase access
+token as `Authorization: Bearer <token>`. The backend verifies that token with Supabase, then uses
+the backend-only `SUPABASE_SERVICE_ROLE_KEY` to delete that exact user. The service-role key is
+never exposed to the frontend.
+
+`204` with no body.
+
+Errors: `401 AUTH_REQUIRED`, `503 ACCOUNT_DELETION_UNAVAILABLE`.
+
 ---
 
 ## HTTP status summary

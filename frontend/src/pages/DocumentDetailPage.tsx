@@ -7,6 +7,7 @@ import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { ProcessingSteps, type ProcessingStep } from '../components/ProcessingSteps';
 import { PipelineTrack } from '../components/PipelineTrack';
+import { SyntheticDataBanner } from '../components/SyntheticDataBanner';
 import { getLocalPreview } from '../state/preview';
 import { addRecentDocument } from '../state/recentDocuments';
 import { pathAfterVerification } from '../utils/reviewNavigation';
@@ -107,6 +108,8 @@ export function DocumentDetailPage() {
         characters were read — it is not a statement about the document's authenticity.
       </p>
 
+      <SyntheticDataBanner />
+
       <PipelineTrack current={verifyStage === 'idle' ? 'extract' : 'compare'} />
 
       {preview ? (
@@ -127,7 +130,7 @@ export function DocumentDetailPage() {
           </div>
         </section>
       ) : (
-        <p className="note">Document preview not available</p>
+        <p className="note">Preview not available</p>
       )}
 
       {!extraction ? (

@@ -1,31 +1,32 @@
-import { useCallback, useState, type ReactNode } from 'react';
-import { Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
 import { SplashPage } from '../pages/SplashPage';
-import { getDemoSession, hasSplashBeenShown, markSplashShown } from '../state/demoAuth';
+import {
+  hasSplashBeenShown,
+  initializeAuthSession,
+  isAuthInitialized,
+  markSplashShown,
+  useAuthSession,
+} from '../state/authSession';
 
-export function RequireDemoSession() {
-  const navigate = useNavigate();
-  const [splashDone, setSplashDone] = useState(hasSplashBeenShown);
+function useRestoreAuthSession(): string | null {
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  const handleSplashFinished = useCallback(() => {
-    markSplashShown();
-    setSplashDone(true);
-    navigate('/login', { replace: true });
-  }, [navigate]);
+  useEffect(() => {
+    if (isAuthInitialized()) return;
 
-  if (!splashDone) {
-    return <SplashPage onFinished={handleSplashFinished} />;
-  }
+    void initializeAuthSession().catch(() => {
+      setAuthError('Unable to restore your session. Please refresh and try again.');
+    });
+  }, []);
 
-  if (!getDemoSession()) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Outlet />;
+  return authError;
 }
 
-export function GuestOnly({ children }: { children: ReactNode }) {
+export function RequireDemoSession() {
+  const { session, loading } = useAuthSession();
   const [splashDone, setSplashDone] = useState(hasSplashBeenShown);
+  const authError = useRestoreAuthSession();
 
   const handleSplashFinished = useCallback(() => {
     markSplashShown();
@@ -36,7 +37,69 @@ export function GuestOnly({ children }: { children: ReactNode }) {
     return <SplashPage onFinished={handleSplashFinished} />;
   }
 
-  if (getDemoSession()) {
+  if (authError) {
+    return (
+      <div className="page">
+        <h1>Session unavailable</h1>
+        <p role="alert">{authError}</p>
+        <button
+          type="button"
+          className="button button--primary"
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return <div className="page" role="status">Restoring your session...</div>;
+  }
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
+}
+
+export function GuestOnly({ children }: { children: ReactNode }) {
+  const { session, loading } = useAuthSession();
+  const [splashDone, setSplashDone] = useState(hasSplashBeenShown);
+  const authError = useRestoreAuthSession();
+
+  const handleSplashFinished = useCallback(() => {
+    markSplashShown();
+    setSplashDone(true);
+  }, []);
+
+  if (!splashDone) {
+    return <SplashPage onFinished={handleSplashFinished} />;
+  }
+
+  if (authError) {
+    return (
+      <div className="auth-screen">
+        <div className="auth-card">
+          <p className="error-inline" role="alert">{authError}</p>
+          <button
+            type="button"
+            className="button button--primary"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return <div className="auth-screen" role="status">Restoring your session...</div>;
+  }
+
+  if (session) {
     return <Navigate to="/" replace />;
   }
 

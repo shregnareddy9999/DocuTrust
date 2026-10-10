@@ -15,6 +15,8 @@ from app.repositories import documents_repo, extraction_repo
 from app.services.extraction_service import extract_fields
 from app.services.ocr_service import OcrProcessingError, process_document
 
+MAX_MULTI_DOCUMENT_OCR_CHARS = 900
+
 
 class AcademicSummaryValidationError(ValueError):
     def __init__(self, code: str, message: str):
@@ -55,14 +57,34 @@ def _field_lines(fields: dict[str, Any]) -> list[str]:
     return lines
 
 
-def _document_text(document_id: str, raw_ocr_json: str, extracted_fields_json: str) -> str:
+def _truncate_text(text: str, max_chars: int) -> str:
+    cleaned = " ".join(text.split())
+    if len(cleaned) <= max_chars:
+        return cleaned
+    return f"{cleaned[:max_chars].rstrip()}..."
+
+
+def _document_text(
+    document_id: str,
+    raw_ocr_json: str,
+    extracted_fields_json: str,
+    *,
+    prefer_fields: bool = False,
+) -> str:
+    fields = _parse_json_object(extracted_fields_json)
+    lines = _field_lines(fields)
+    if prefer_fields and lines:
+        raw = _parse_json_object(raw_ocr_json)
+        text = raw.get("text")
+        if isinstance(text, str) and text.strip():
+            lines.append(f"ocr_excerpt: {_truncate_text(text, MAX_MULTI_DOCUMENT_OCR_CHARS)}")
+        return "\n".join(lines)
+
     raw = _parse_json_object(raw_ocr_json)
     text = raw.get("text")
     if isinstance(text, str) and text.strip():
         return text.strip()
 
-    fields = _parse_json_object(extracted_fields_json)
-    lines = _field_lines(fields)
     if lines:
         return "\n".join(lines)
 
@@ -82,7 +104,13 @@ def _dedupe_document_ids(document_ids: list[str]) -> list[str]:
 
 def _build_prompt(document_sections: list[str]) -> str:
     combined = "\n\n".join(document_sections)
-    mode = "single-document summary" if len(document_sections) == 1 else "multi-document comparison"
+    multi_document = len(document_sections) > 1
+    mode = "single-document summary" if not multi_document else "multi-document comparison"
+    output_instruction = (
+        "- For one document: summarize only supported academic details."
+        if not multi_document
+        else "- For multiple documents: compare the supplied documents. Mention shared details, differences, changes across documents, and any unclear or inconsistent fields. Cite Document 1, Document 2, etc."
+    )
     return f"""Task: {mode} for synthetic academic documents.
 
 Rules:
@@ -93,8 +121,7 @@ Rules:
 
 Output:
 - Keep it concise and student-friendly.
-- For one document: summarize only supported academic details.
-- For multiple documents: compare supported similarities, differences, changes over time, and inconsistencies. Cite the document label for each important observation.
+{output_instruction}
 
 Supplied document information:
 {combined}
@@ -146,6 +173,7 @@ def generate_academic_summary(session: Session, document_ids: list[str]) -> dict
         )
 
     document_sections: list[str] = []
+    prefer_compact_fields = len(unique_ids) > 1
     for index, document_id in enumerate(unique_ids, start=1):
         document = documents_repo.get_by_id(session, document_id)
         if document is None:
@@ -166,6 +194,7 @@ def generate_academic_summary(session: Session, document_ids: list[str]) -> dict
             document_id=document_id,
             raw_ocr_json=extraction.raw_ocr_json,
             extracted_fields_json=extraction.extracted_fields_json,
+            prefer_fields=prefer_compact_fields,
         )
         document_sections.append(
             f"Document {index} ({document.original_filename}, id {document.id}):\n{document_text}"

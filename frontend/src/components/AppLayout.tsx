@@ -1,7 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate, type NavLinkRenderProps } from 'react-router-dom';
 import { SearchContext } from '../state/shellSearch';
-import { getDemoSession, sessionInitials } from '../state/demoAuth';
+import { sessionInitials, useAuthSession } from '../state/demoAuth';
 import {
   BellIcon,
   BlockchainIcon,
@@ -96,7 +96,7 @@ export function AppLayout() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
-  const session = getDemoSession();
+  const { session } = useAuthSession();
   const displayName = session?.displayName ?? 'Demo user';
 
   const canSearch = SEARCHABLE_ROUTES.includes(location.pathname);

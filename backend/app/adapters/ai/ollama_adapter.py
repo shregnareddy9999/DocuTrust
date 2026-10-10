@@ -32,6 +32,8 @@ class OllamaAcademicSummaryAdapter(AcademicSummaryAdapter):
                     "stream": False,
                     "options": {
                         "temperature": 0,
+                        "num_ctx": 4096,
+                        "num_predict": 420,
                     },
                 },
                 timeout=self.timeout_seconds,
