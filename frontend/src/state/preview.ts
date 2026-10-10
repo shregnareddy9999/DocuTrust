@@ -67,3 +67,14 @@ export function clearLocalPreview(): void {
   }
   preview = null;
 }
+
+export function clearLocalPreviews(documentIds: string[]): void {
+  for (const documentId of documentIds) {
+    try {
+      localStorage.removeItem(`${STORAGE_KEY_PREFIX}.${documentId}`);
+    } catch {
+      // storage may be unavailable
+    }
+  }
+  clearLocalPreview();
+}

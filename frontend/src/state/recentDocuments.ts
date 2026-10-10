@@ -30,7 +30,7 @@ function getStorageKey(): string {
   return `${STORAGE_KEY_PREFIX}.${email.toLowerCase()}`;
 }
 
-function readStoredDocuments(): StoredDocument[] {
+function readStoredDocuments(): StoredDocument[] | null {
   try {
     const raw = window.localStorage.getItem(getStorageKey());
     if (!raw) return [];
@@ -40,7 +40,7 @@ function readStoredDocuments(): StoredDocument[] {
       typeof entry === 'object' && entry !== null && typeof entry.documentId === 'string'
     );
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -52,7 +52,7 @@ function writeStoredDocuments(docs: StoredDocument[]): void {
   }
 }
 
-let storedDocuments: StoredDocument[] = readStoredDocuments();
+let storedDocuments: StoredDocument[] = readStoredDocuments() ?? [];
 let snapshot: StoredDocument[] = storedDocuments.slice();
 let documentIdsCache: string[] = storedDocuments.map(d => d.documentId);
 
@@ -77,10 +77,12 @@ function emit(): void {
 
 function reloadFromStorage(): void {
   const fromStorage = readStoredDocuments();
-  if (fromStorage.length > 0 || storedDocuments.length === 0) {
-    storedDocuments = fromStorage;
-    emit();
+  if (fromStorage === null) {
+    updateSnapshotAndCache();
+    return;
   }
+  storedDocuments = fromStorage;
+  emit();
 }
 
 // Reinitialize when user session changes (login/logout/switch user)
@@ -116,6 +118,22 @@ export function clearRecentDocuments(): void {
   storedDocuments = [];
   writeStoredDocuments(storedDocuments);
   emit();
+}
+
+export function clearRecentDocumentsForEmail(email: string): void {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) return;
+
+  try {
+    window.localStorage.removeItem(`${STORAGE_KEY_PREFIX}.${normalizedEmail}`);
+  } catch {
+    // storage unavailable
+  }
+
+  if (getDemoSession()?.email.toLowerCase() === normalizedEmail) {
+    storedDocuments = [];
+    emit();
+  }
 }
 
 export function reinitializeForCurrentUser(): void {
@@ -326,7 +344,7 @@ export function useRecentDocuments(): RecentDocumentsState {
         if (!cancelled) {
           // Don't show error if some documents loaded successfully
           // Only show error if NO documents loaded AND there were rejections
-          if (hydrated.length === 0 && settled.some((item) => item.status === 'rejected')) {
+          if (hydrated.length === 0 && settled.some((item) => item.status !== 'fulfilled')) {
             setRows([]);
             setError('Could not load the documents in this browser session.');
           } else {

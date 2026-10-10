@@ -61,7 +61,7 @@ export function BlockchainReceiptsPage() {
     return (
       <div className="page blockchain-receipts-page">
         <h1>Blockchain Receipts</h1>
-        <p className="page-intro">On-chain recording status for verified documents.</p>
+        <p className="page-intro">On-chain recording status for compared documents.</p>
         <div className="card" style={{ marginBottom: '16px' }}>
           <label className="form-field" style={{ maxWidth: '400px' }}>
             <span>Search by Verification ID</span>
@@ -91,7 +91,7 @@ export function BlockchainReceiptsPage() {
   return (
     <div className="page blockchain-receipts-page">
       <h1>Blockchain Receipts</h1>
-      <p className="page-intro">On-chain recording status for verified documents.</p>
+      <p className="page-intro">On-chain recording status for compared documents.</p>
 
       <div className="card" style={{ marginBottom: '16px' }}>
         <label className="form-field" style={{ maxWidth: '400px' }}>

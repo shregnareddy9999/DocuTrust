@@ -89,6 +89,46 @@ def test_academic_summary_success(client, monkeypatch):
     assert "Aarav Demo" in fake.prompts[0]
 
 
+def test_academic_summary_multiple_documents_uses_compact_comparison_prompt(client, monkeypatch):
+    fake = FakeAcademicSummaryAdapter(
+        summary="Document 1 and Document 2 both describe synthetic academic records, with different semester details.",
+        model="llama3.2:latest",
+    )
+    monkeypatch.setattr(ai_adapters, "get_academic_summary_adapter", lambda: fake)
+    first_id = _create_document(
+        raw_text=(
+            "Student Name: Aarav Demo\n"
+            "Semester / Year: 1\n"
+            "Course: B.Tech Computer Science and Engineering\n"
+            + ("Repeated OCR filler. " * 200)
+        )
+    )
+    second_id = _create_document(
+        raw_text=(
+            "Student Name: Aarav Demo\n"
+            "Semester / Year: 2\n"
+            "Course: B.Tech Computer Science and Engineering\n"
+            + ("Second repeated OCR filler. " * 200)
+        )
+    )
+
+    response = client.post(
+        "/api/v1/academic-summary",
+        json={"document_ids": [first_id, second_id]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["documents_analyzed"] == 2
+    prompt = fake.prompts[0]
+    assert "Task: multi-document comparison" in prompt
+    assert "Document 1" in prompt
+    assert "Document 2" in prompt
+    assert "student_name (ocr): Aarav Demo" in prompt
+    assert "ocr_excerpt:" in prompt
+    assert len(prompt) < 4000
+
+
 def test_academic_summary_processes_uploaded_document_once(client, monkeypatch):
     fake = FakeAcademicSummaryAdapter(summary="One uploaded academic document was summarized.")
     monkeypatch.setattr(ai_adapters, "get_academic_summary_adapter", lambda: fake)

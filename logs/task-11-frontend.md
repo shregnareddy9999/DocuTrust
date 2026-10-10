@@ -201,3 +201,150 @@ pm test\ standalone x3 -> 17/106, 17/106, 17/106 passed; exit 0 each; no flaky.
 ### Nothing hidden
 - Cannot read images in this session (no image-input for the assistant), so screenshot-level polish
   is verified by CSS inspection + tests, not by eyeballing a pasted screenshot.
+
+---
+
+## Supabase auth completion session - 2026-10-09
+
+### Changes made
+- Repaired malformed TypeScript in the Supabase auth/session files by removing stray Markdown code fences.
+- Replaced the browser demo login/register path in `AuthPage.tsx` with `registerUser()` and `loginUser()`.
+- Added pending states, safe auth error messages, password visibility preservation, email normalization, and email-confirmation messaging.
+- Kept `setDemoSession()` as a test-only compatibility helper and kept session-change notifications for `recentDocuments`.
+- Made protected/guest routes wait for Supabase session restoration before redirecting.
+- Made `AppLayout` and `ProfilePage` read auth state reactively through `useAuthSession()`.
+- Switched profile logout to Supabase sign-out and changed account deletion copy to state that a secure backend operation is required.
+- Restored the document detail synthetic-data banner/test-visible preview fallback and removed banned wording from the blockchain receipts page/source scan.
+
+### Verification run this session
+- `npm run typecheck` -> exit 0.
+- `npm run lint` -> exit 0, with one warning in `src/pages/SplashPage.tsx` about missing `finish` in a hook dependency array.
+- `npm test` -> first sandbox run failed with `spawn EPERM`; reran with approved escalation. Final result: 19 files / 119 tests passed.
+- `npm run build` -> first sandbox run failed with `spawn EPERM`; reran with approved escalation. Final result: built successfully in 729ms, with Vite chunk-size warning for chunks over 500 kB.
+
+### Notes
+- No Supabase secrets were printed or added.
+- No backend schema, RLS policy, database migration, or service-role key was added.
+- Manual Supabase Dashboard setup is still required: email/password auth enabled, frontend URL/redirect URLs configured, and a `public.profiles` table/RLS policy that lets authenticated users read/upsert only their own profile if profile display names should persist before/after reload.
+
+---
+
+## Supabase auth failure follow-up - 2026-10-09
+
+### Root cause found
+- Ran a one-time Supabase Auth sign-up probe with a synthetic `demo-auth-check+...@example.test`
+  address and the local frontend `.env` values. The request reached Supabase and returned
+  `AuthApiError`, status `429`, code `over_email_send_rate_limit`, message `email rate limit
+  exceeded`.
+- This explains the observed empty Supabase Authentication > Users table: Supabase rejected the
+  registration while trying to send the confirmation email, before creating an auth user.
+- Login then fails with rejected credentials because no account was created.
+
+### Changes made
+- `AuthPage.tsx`: auth errors are now read by `message`, `code`, and `status`, not only by
+  `instanceof Error`. The Supabase `over_email_send_rate_limit` / HTTP 429 failure now displays the
+  actual safe cause and next action instead of falling through to the generic message.
+- `auth.ts`: profile upsert is now non-blocking after successful Supabase registration. A missing
+  optional `profiles` table or restrictive profile RLS policy no longer makes real Auth account
+  creation look like a failed registration.
+- `AuthPage.test.tsx`: added coverage for the Supabase email send rate-limit error object.
+
+### Verification run this follow-up
+- `npm run typecheck` -> exit 0.
+- `npm test -- AuthPage.test.tsx` -> first sandbox run failed with `spawn EPERM`; reran with
+  approved escalation. Final result: 1 file / 4 tests passed.
+- `npm test` -> approved escalation because of the same esbuild/vitest spawn restriction. Final
+  result: 20 files / 123 tests passed.
+
+### Notes
+- The temporary Supabase probe file was removed after use.
+- No Supabase secrets were printed or added.
+- No database schema, migration, service-role key, backend endpoint, or privileged account-deletion
+  path was added.
+- Supabase project configuration still needs attention outside the repo: wait for the email rate
+  limit window to clear or configure custom SMTP, and make sure the frontend URL is in the allowed
+  redirect URLs for confirmation links.
+
+---
+
+## Auth/account isolation + AI summary follow-up - 2026-10-09
+
+### Changes made
+- Changed cold app-load session restoration so a persisted Supabase session no longer skips the
+  splash-to-login/register path. A user must sign in/register during the current app load before
+  protected routes open.
+- Fixed `recentDocuments` account isolation: switching to an account with an empty document store now
+  clears the in-memory list instead of showing the previous account's documents. The in-memory
+  fallback still works when localStorage is unavailable.
+- Added Supabase-backed account deletion: frontend calls `DELETE /api/v1/account` with the current
+  Supabase access token; backend verifies the token and deletes that exact Auth user using the
+  backend-only service-role key. After success, the frontend clears that email's local document list
+  and cached previews, signs out locally, and sends the user to registration.
+- Added backend-only Supabase account deletion config placeholders to `backend/.env.example` and
+  documented the new endpoint/config in `docs/api.md` and `docs/configuration.md`.
+- Switched the default AI summary Ollama URL from `localhost` to `127.0.0.1` to avoid local host
+  resolution differences. Verified this machine's Ollama responds at `/api/tags` and has
+  `llama3.2:latest` installed.
+
+### Verification run this follow-up
+- `Invoke-WebRequest http://127.0.0.1:11434/api/tags` -> returned models including
+  `llama3.2:latest`.
+- `Invoke-WebRequest http://127.0.0.1:11434/api/generate` with `llama3.2:latest` -> returned a
+  summary response.
+- `cd backend; .\venv311\Scripts\python.exe -m pytest tests\test_account.py tests\test_academic_summary.py -q -p no:cacheprovider --basetemp .test-tmp\pytest-account-summary`
+  -> 8 passed in 0.94s.
+- `cd backend; .\venv311\Scripts\python.exe -m pytest -q -p no:cacheprovider --basetemp .test-tmp\pytest-full`
+  -> 307 passed, 1 deselected in 16.58s.
+- `cd frontend; npm run typecheck` -> exit 0.
+- `cd frontend; npm run lint` -> exit 0 with the existing `SplashPage.tsx` exhaustive-deps warning.
+- `cd frontend; npm test` -> 21 files / 126 tests passed.
+- `cd frontend; npm run build` -> built successfully in 1.08s, with the existing Vite chunk-size
+  warning for chunks over 500 kB.
+
+### Setup note
+- Account deletion requires backend `.env` values `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+  The service-role key must stay backend-only and must not be added to any `VITE_` variable.
+
+---
+
+## AI summary multi-document timeout follow-up - 2026-10-09
+
+### Root cause
+- Single-document summaries worked, but multi-document summaries could send full raw OCR text for
+  every selected document to local Ollama. That made the prompt much larger and could trigger a
+  local Ollama timeout, which surfaced in the frontend as `AI_SUMMARY_UNAVAILABLE`.
+
+### Changes made
+- Multi-document summaries now send a compact, comparison-focused prompt using extracted fields
+  first, with only a bounded OCR excerpt per document.
+- The Ollama adapter now caps local generation with deterministic options (`temperature: 0`,
+  bounded context, bounded predicted tokens) so comparison summaries finish more reliably.
+- Added backend coverage proving a multi-document request includes both document labels, uses the
+  multi-document comparison prompt, and keeps the prompt bounded.
+
+### Verification run this follow-up
+- `cd backend; .\venv311\Scripts\python.exe -m pytest tests\test_academic_summary.py -q -p no:cacheprovider --basetemp .test-tmp\pytest-academic-multi`
+  -> 7 passed in 0.82s.
+- `cd backend; .\venv311\Scripts\python.exe -m pytest -q -p no:cacheprovider --basetemp .test-tmp\pytest-full-academic-multi`
+  -> 308 passed, 1 deselected in 16.36s.
+- `cd frontend; npm run typecheck` -> exit 0.
+
+### Runtime note
+- Restart the backend after pulling this change so the updated summary service and Ollama adapter are
+  loaded by Uvicorn.
+
+---
+
+## Auth reload session follow-up - 2026-10-10
+
+### Change made
+- Adjusted the Supabase session compatibility layer so the first frontend start in a tab still shows
+  splash then login/register, but a reload after a successful login restores the existing Supabase
+  session and continues into the app.
+- The restore marker is stored in `sessionStorage`, so it survives reloads in the same tab but is
+  cleared on logout/account deletion and does not turn a brand-new tab into an automatic login.
+
+### Verification run this follow-up
+- `cd frontend; npm run typecheck` -> exit 0.
+- `cd frontend; npm test -- AuthPage.test.tsx ProfilePage.test.tsx recentDocuments.test.tsx`
+  -> 3 files / 12 tests passed.

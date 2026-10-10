@@ -29,9 +29,13 @@ OCR_TIMEOUT_SECONDS=30
 LOW_CONFIDENCE_THRESHOLD=0.70
 
 # AI Academic Summary
-AI_SUMMARY_OLLAMA_URL=http://localhost:11434
+AI_SUMMARY_OLLAMA_URL=http://127.0.0.1:11434
 AI_SUMMARY_MODEL=llama3.2:latest
 AI_SUMMARY_TIMEOUT_SECONDS=60
+
+# Supabase account deletion
+SUPABASE_URL=                       # backend-only Supabase project URL
+SUPABASE_SERVICE_ROLE_KEY=          # backend-only; never expose through Vite
 
 # Registry
 REGISTRY_MODE=synthetic_demo        # only value supported in MVP
@@ -56,6 +60,8 @@ LOG_LEVEL=INFO
 
 ```env
 VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
 ```
 
 ## Rules

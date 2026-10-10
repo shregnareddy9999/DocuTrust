@@ -39,9 +39,12 @@ class Settings(BaseSettings):
     OCR_TIMEOUT_SECONDS: int = 30
     LOW_CONFIDENCE_THRESHOLD: float = 0.70
 
-    AI_SUMMARY_OLLAMA_URL: str = "http://localhost:11434"
+    AI_SUMMARY_OLLAMA_URL: str = "http://127.0.0.1:11434"
     AI_SUMMARY_MODEL: str = "llama3.2:latest"
     AI_SUMMARY_TIMEOUT_SECONDS: int = 60
+
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
 
     REGISTRY_MODE: Literal["synthetic_demo"] = "synthetic_demo"
 
@@ -97,6 +100,13 @@ class Settings(BaseSettings):
         if v <= 0:
             raise ValueError("AI_SUMMARY_TIMEOUT_SECONDS must be > 0")
         return v
+
+    @field_validator("SUPABASE_URL")
+    @classmethod
+    def validate_supabase_url(cls, v: str) -> str:
+        if v and not v.startswith(("http://", "https://")):
+            raise ValueError("SUPABASE_URL must be an http(s) URL")
+        return v.rstrip("/")
 
     @field_validator("BLOCKCHAIN_CHAIN_ID")
     @classmethod
