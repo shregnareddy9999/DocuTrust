@@ -7,6 +7,41 @@
 
 ---
 
+## Blockchain transaction lookup follow-up - 2026-10-10
+
+### Limitation found before implementation
+- The locked public API has `GET /api/v1/verifications/{verification_id}/blockchain`, but no
+  transaction-hash lookup endpoint. Adding one would change `docs/api.md`, so this pass stays
+  frontend-only and verifies hashes only against receipt records already reachable through the
+  app's existing recent-document/session flow and blockchain receipt endpoint.
+- The lookup does not treat hash format as proof. It displays `Receipt is valid` only when an exact
+  transaction-hash match is found in a fetched `CONFIRMED` blockchain receipt. Empty, incomplete,
+  unknown, failed, or pending hashes display `Invalid transaction ID`.
+
+### Changes made
+- Added `BlockchainTxVerifyPage` at `/blockchain-receipts/verify-tx` with a back button, search bar,
+  exact transaction-hash lookup, receipt detail rendering, and invalid-input state.
+- Added a `Verify Blockchain Tx` button to `BlockchainReceiptsPage`.
+- Removed fabricated transaction hash/digest/address/timestamp values from the receipts list badge
+  shim; the tx lookup fetches real receipt details from `getBlockchain()`.
+- Added focused coverage for valid, invalid, incomplete, and empty transaction-hash inputs.
+- Narrowed the wording source scan so `Valid`/`Invalid` remain banned for document/status wording
+  while allowing only the requested receipt lookup phrases.
+
+### Verification run this follow-up
+- `cd frontend; npm run typecheck` -> exit 0.
+- `cd frontend; npm test -- BlockchainTxVerifyPage.test.tsx BlockchainReceiptPage.test.tsx wording.test.tsx`
+  -> first sandbox run failed with `spawn EPERM`; reran with approved escalation. Final result:
+  3 files / 23 tests passed.
+- `cd frontend; npm run lint` -> exit 0 with the existing `SplashPage.tsx` exhaustive-deps warning.
+- `cd frontend; npm test` -> approved escalation because Vitest/esbuild spawn is blocked in the
+  sandbox. Final result: 23 files / 137 tests passed.
+- `cd frontend; npm run build` -> first sandbox run failed with `spawn EPERM`; reran with approved
+  escalation. Final result: built successfully in 617ms, with the existing Vite chunk-size warning
+  for chunks over 500 kB.
+
+---
+
 ## Contracts this task implements
 
 - `docs/frontend.md` — page flow, locked folder layout, hard rules (no hardcoded categories, banner

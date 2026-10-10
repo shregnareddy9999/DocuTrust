@@ -105,7 +105,6 @@ describe('source-wide banned word scan', () => {
       'Verified',
       'Authentic',
       'Genuine',
-      'Invalid',
       'Forged',
       'Rejected',
       'Fraud',
@@ -118,6 +117,20 @@ describe('source-wide banned word scan', () => {
     }
   });
 
+  it('restricts "Invalid" to transaction-id receipt lookup wording', () => {
+    for (const [path, content] of sources) {
+      const lines = content.split('\n');
+      for (const line of lines) {
+        if (wholeWord('Invalid').test(line)) {
+          const isTransactionLookup =
+            path.endsWith('/pages/BlockchainTxVerifyPage.tsx') &&
+            line.includes('Invalid transaction ID');
+          expect(isTransactionLookup, `Unexpected "Invalid" in ${path}: ${line.trim()}`).toBe(true);
+        }
+      }
+    }
+  });
+
   it('contains no "Valid" outside the schema field label "valid_until"', () => {
     for (const [path, content] of sources) {
       const lines = content.split('\n');
@@ -125,7 +138,13 @@ describe('source-wide banned word scan', () => {
         if (wholeWord('Valid').test(line)) {
           const isSchemaLabel =
             line.includes("name: 'valid_until'") && line.includes("label: 'Valid Until'");
-          expect(isSchemaLabel, `Unexpected "Valid" in ${path}: ${line.trim()}`).toBe(true);
+          const isReceiptLookup =
+            path.endsWith('/pages/BlockchainTxVerifyPage.tsx') &&
+            line.includes('Receipt is valid');
+          expect(
+            isSchemaLabel || isReceiptLookup,
+            `Unexpected "Valid" in ${path}: ${line.trim()}`
+          ).toBe(true);
         }
       }
     }
