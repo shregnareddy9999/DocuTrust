@@ -11,6 +11,7 @@ import { DemoDashboardPage } from './pages/DemoDashboardPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { AcademicSummaryPage } from './pages/AcademicSummaryPage';
+import { AadhaarLinkPage } from './pages/AadhaarLinkPage';
 import { ReviewQueuePage } from './pages/ReviewQueuePage';
 import { HistoryPage } from './pages/HistoryPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/verify" element={<UploadPage />} />
             <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/aadhaar-link" element={<AadhaarLinkPage />} />
             <Route path="/academic-summary" element={<AcademicSummaryPage />} />
             <Route path="/documents/:documentId" element={<DocumentDetailPage />} />
             <Route path="/review-queue" element={<ReviewQueuePage />} />

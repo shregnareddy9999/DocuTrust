@@ -1447,6 +1447,20 @@ th:last-child {
   .pipeline-track {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .aadhaar-citizen-top,
+  .aadhaar-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .aadhaar-id-chips {
+    justify-content: flex-start;
+  }
+
+  .aadhaar-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 720px) {
@@ -1572,6 +1586,19 @@ th:last-child {
 
   .pipeline-track {
     grid-template-columns: 1fr;
+  }
+
+  .aadhaar-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .aadhaar-doc-row {
+    align-items: flex-start;
+    padding: 14px;
+  }
+
+  .aadhaar-doc-action {
+    display: none;
   }
 }
 
@@ -1975,6 +2002,292 @@ th:last-child {
   color: var(--text);
   font-weight: 600;
   overflow-wrap: anywhere;
+}
+
+/* ===== Aadhaar Link demo ===== */
+.aadhaar-page .page-intro {
+  max-width: 78ch;
+}
+
+.aadhaar-upload-card {
+  min-height: 180px;
+}
+
+.aadhaar-upload-actions {
+  justify-content: flex-end;
+}
+
+.aadhaar-citizen-card {
+  padding-bottom: 22px;
+}
+
+.aadhaar-citizen-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.aadhaar-citizen-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.aadhaar-avatar {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--matched-bg);
+  border: 1px solid var(--matched-border);
+  color: var(--matched);
+  font-weight: 700;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+
+.aadhaar-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.aadhaar-name-row h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.aadhaar-citizen-main p,
+.aadhaar-section-header p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.aadhaar-pill,
+.aadhaar-doc-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--green-border);
+  background: var(--green-bg);
+  color: var(--green);
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.aadhaar-id-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.aadhaar-id-chip {
+  min-width: 150px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  background: #f8fafc;
+  padding: 9px 12px;
+}
+
+.aadhaar-id-chip span {
+  display: block;
+  color: var(--muted-2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.aadhaar-id-chip strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.aadhaar-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 18px 0 0;
+}
+
+.aadhaar-summary-grid div {
+  border-left: 3px solid var(--link);
+  padding: 0 0 0 14px;
+}
+
+.aadhaar-summary-grid div:nth-child(2) {
+  border-left-color: var(--green);
+}
+
+.aadhaar-summary-grid div:nth-child(3) {
+  border-left-color: var(--chain);
+}
+
+.aadhaar-summary-grid div:nth-child(4) {
+  border-left-color: #d97706;
+}
+
+.aadhaar-summary-grid dt {
+  color: var(--muted-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.aadhaar-summary-grid dd {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.aadhaar-demo-note {
+  margin: 16px 0 0;
+  border: 1px solid var(--review-border);
+  background: var(--review-bg);
+  color: var(--review);
+  border-radius: var(--radius-input);
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.aadhaar-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.aadhaar-section-header h2 {
+  margin-bottom: 0;
+}
+
+.aadhaar-doc-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.aadhaar-doc-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.aadhaar-doc-row:last-child {
+  border-bottom: 0;
+}
+
+.aadhaar-doc-row:hover {
+  background: #f8fafc;
+}
+
+.aadhaar-doc-row--static {
+  cursor: default;
+}
+
+.aadhaar-doc-icon {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  border: 1px solid var(--matched-border);
+  background: var(--matched-bg);
+  color: var(--matched);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.aadhaar-doc-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.aadhaar-doc-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.aadhaar-doc-source {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.aadhaar-doc-meta {
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.aadhaar-doc-action {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  padding: 7px 12px;
+  color: var(--link);
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.aadhaar-doc-static {
+  color: var(--muted-2);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.aadhaar-preview-modal {
+  max-width: min(980px, 96vw);
+}
+
+.aadhaar-preview-frame {
+  width: 100%;
+  height: min(72vh, 720px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.aadhaar-preview-image {
+  display: block;
+  width: 100%;
+  max-height: min(72vh, 720px);
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: #fff;
 }
 
 /* §2.4/2.6 — safe-area insets (notched phones). Requires viewport-fit=cover in index.html. */

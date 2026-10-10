@@ -150,3 +150,35 @@ export interface HealthResponse {
   ocr_adapter: 'configured';
   blockchain: 'enabled' | 'disabled';
 }
+
+export interface AadhaarLinkedDocument {
+  id: string;
+  document_type: string;
+  document_type_label: string;
+  demo_document_ref: string;
+  display_value: string;
+  issuer_label: string;
+  asset_ref: string | null;
+  asset_mime_type: string | null;
+  status_label: string;
+  demo_mobile_placeholder: string | null;
+}
+
+export interface AadhaarLinkResponse {
+  lookup_id: string;
+  source: 'synthetic-demo';
+  reference_detected: boolean;
+  citizen: {
+    citizen_ref: string;
+    demo_name: string;
+    aadhaar_ref: string;
+    masked_aadhaar: string;
+    demo_mobile_placeholder: string | null;
+  };
+  linked_documents: AadhaarLinkedDocument[];
+  summary: {
+    linked_record_count: number;
+    blockchain_seed: string;
+    last_sync_label: string;
+  };
+}

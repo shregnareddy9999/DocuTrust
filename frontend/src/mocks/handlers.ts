@@ -1,5 +1,5 @@
 import { http, HttpResponse, delay } from 'msw';
-import type { DocumentType, VerificationStatus } from '../types/api';
+import type { AadhaarLinkResponse, DocumentType, VerificationStatus } from '../types/api';
 import { getMockConfig } from './config';
 
 const BASE = '*/api/v1';
@@ -240,6 +240,64 @@ export function generatedBlockchain(chainFlag: string | null) {
   }
 }
 
+function mockAadhaarLinkResponse(): AadhaarLinkResponse {
+  return {
+    lookup_id: 'aadhaar-link-demo-0001',
+    source: 'synthetic-demo',
+    reference_detected: true,
+    citizen: {
+      citizen_ref: 'CIT-10001',
+      demo_name: 'Aarav Demo',
+      aadhaar_ref: 'AAD-10001',
+      masked_aadhaar: 'DEMO-XXXX-0001',
+      demo_mobile_placeholder: '9000005001',
+    },
+    linked_documents: [
+      {
+        id: 'link-pan-20001',
+        document_type: 'PAN',
+        document_type_label: 'Permanent Account Number Demo',
+        demo_document_ref: 'PAN-20001',
+        display_value: 'PAN Card reference: PAN-20001',
+        issuer_label: 'Synthetic Tax Registry',
+        asset_ref: 'PAN-20001',
+        asset_mime_type: 'image/png',
+        status_label: 'Linked in synthetic registry',
+        demo_mobile_placeholder: null,
+      },
+      {
+        id: 'link-dl-30001',
+        document_type: 'DRIVING_LICENSE',
+        document_type_label: 'Driving Licence Demo',
+        demo_document_ref: 'DL-30001',
+        display_value: 'Driving Licence reference: DL-30001',
+        issuer_label: 'Synthetic Transport Registry',
+        asset_ref: 'DL-30001',
+        asset_mime_type: 'application/pdf',
+        status_label: 'Linked in synthetic registry',
+        demo_mobile_placeholder: null,
+      },
+      {
+        id: 'link-mob-50001',
+        document_type: 'MOBILE',
+        document_type_label: 'Mobile Connection Demo',
+        demo_document_ref: 'MOB-50001',
+        display_value: 'Mobile Connection reference: MOB-50001',
+        issuer_label: 'Synthetic Telecom Registry',
+        asset_ref: null,
+        asset_mime_type: null,
+        status_label: 'Listed in synthetic registry',
+        demo_mobile_placeholder: '9000005001',
+      },
+    ],
+    summary: {
+      linked_record_count: 3,
+      blockchain_seed: 'local-demo-seed',
+      last_sync_label: 'Synthetic demo registry snapshot',
+    },
+  };
+}
+
 export const handlers = [
   http.get(`${BASE}/health`, () =>
     HttpResponse.json({ status: 'ok', database: 'ok', ocr_adapter: 'configured', blockchain: 'enabled' })
@@ -380,6 +438,62 @@ export const handlers = [
     const status = (mock ?? 'VERIFIED_MATCH') as VerificationStatus;
     const documentId = String(params.documentId);
     return HttpResponse.json({ verification_id: nextVerificationId(), status, document_id: documentId });
+  }),
+
+  http.post(`${BASE}/aadhaar-link`, async () => {
+    const { err, slow, net } = getMockConfig();
+    if (net) return HttpResponse.error();
+    if (slow) await delay(900);
+
+    if (err === 'FILE_TOO_LARGE') {
+      return HttpResponse.json(
+        { error: { code: 'FILE_TOO_LARGE', message: 'The file exceeds the maximum upload size of 10 MB.' } },
+        { status: 413 }
+      );
+    }
+    if (err === 'UNSUPPORTED_MEDIA_TYPE') {
+      return HttpResponse.json(
+        { error: { code: 'UNSUPPORTED_MEDIA_TYPE', message: 'This file type is not supported. Use JPEG, PNG, or PDF.' } },
+        { status: 415 }
+      );
+    }
+    if (err === 'EMPTY_OR_CORRUPT_FILE') {
+      return HttpResponse.json(
+        { error: { code: 'EMPTY_OR_CORRUPT_FILE', message: 'The file is empty or could not be read.' } },
+        { status: 422 }
+      );
+    }
+    if (err === 'AADHAAR_DEMO_CARD_REQUIRED') {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'AADHAAR_DEMO_CARD_REQUIRED',
+            message: 'Upload a DocuTrust synthetic Aadhaar demo card. Other document types are not accepted on this page.',
+          },
+        },
+        { status: 422 }
+      );
+    }
+    if (err === 'AADHAAR_LINK_UNAVAILABLE') {
+      return HttpResponse.json(
+        { error: { code: 'AADHAAR_LINK_UNAVAILABLE', message: 'Aadhaar Link demo lookup is not available.' } },
+        { status: 503 }
+      );
+    }
+
+    return HttpResponse.json(mockAadhaarLinkResponse());
+  }),
+
+  http.get(`${BASE}/aadhaar-link/assets/:assetRef`, ({ params }) => {
+    const assetRef = String(params.assetRef);
+    if (assetRef === 'DL-30001') {
+      return new HttpResponse(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]), {
+        headers: { 'content-type': 'application/pdf' },
+      });
+    }
+    return new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+      headers: { 'content-type': 'image/png' },
+    });
   }),
 
   http.post(`${BASE}/academic-summary`, async ({ request }) => {
