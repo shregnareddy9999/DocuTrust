@@ -80,6 +80,13 @@ def test_settings(temp_db_path: str, temp_upload_dir: Path) -> Settings:
         AI_SUMMARY_TIMEOUT_SECONDS=60,
         SUPABASE_URL="https://docutrust-test.supabase.co",
         SUPABASE_SERVICE_ROLE_KEY="test-service-role-key",
+        AADHAAR_MESSAGING_ENABLED=False,
+        AADHAAR_MESSAGING_PROVIDER="fake",
+        AADHAAR_MESSAGE_MAX_CHARS=320,
+        AADHAAR_MESSAGE_RATE_LIMIT_SECONDS=30,
+        TWILIO_ACCOUNT_SID="",
+        TWILIO_AUTH_TOKEN="",
+        TWILIO_PHONE_NUMBER="",
         REGISTRY_MODE="synthetic_demo",
         BLOCKCHAIN_ENABLED=False,
         BLOCKCHAIN_RPC_URL="http://127.0.0.1:8545",
@@ -125,6 +132,9 @@ def client(test_settings: Settings, monkeypatch: pytest.MonkeyPatch):
     import app.main as main_module
     import app.config as config_module
     import app.api.account as account_api
+    import app.services.aadhaar_link_service as aadhaar_link_service
+    import app.services.aadhaar_messaging_service as aadhaar_messaging_service
+    import app.services.auth_service as auth_service
     import app.services.upload_service as upload_service
     from app.db import Base
 
@@ -149,6 +159,9 @@ def client(test_settings: Settings, monkeypatch: pytest.MonkeyPatch):
     # (upload_service imports settings at module level, so we must replace the reference)
     monkeypatch.setattr(config_module, "settings", test_settings)
     monkeypatch.setattr(account_api, "settings", test_settings)
+    monkeypatch.setattr(aadhaar_link_service, "settings", test_settings)
+    monkeypatch.setattr(aadhaar_messaging_service, "settings", test_settings)
+    monkeypatch.setattr(auth_service, "settings", test_settings)
     monkeypatch.setattr(upload_service, "settings", test_settings)
     import app.services.ocr_service as ocr_service
     monkeypatch.setattr(ocr_service, "settings", test_settings)

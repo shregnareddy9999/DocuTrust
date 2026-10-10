@@ -132,6 +132,33 @@ def test_blockchain_disabled_with_empty_fields_loads():
     assert settings.CHAIN_EVENT_SALT == ""
 
 
+def test_twilio_messaging_enabled_requires_credentials():
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(
+            AADHAAR_MESSAGING_ENABLED=True,
+            AADHAAR_MESSAGING_PROVIDER="twilio",
+            BLOCKCHAIN_ENABLED=False,
+            TWILIO_ACCOUNT_SID="",
+            TWILIO_AUTH_TOKEN="",
+            TWILIO_PHONE_NUMBER="",
+        )
+
+    assert "TWILIO_ACCOUNT_SID" in str(exc_info.value)
+
+
+def test_fake_messaging_enabled_does_not_require_twilio_credentials():
+    settings = Settings(
+        AADHAAR_MESSAGING_ENABLED=True,
+        AADHAAR_MESSAGING_PROVIDER="fake",
+        BLOCKCHAIN_ENABLED=False,
+        TWILIO_ACCOUNT_SID="",
+        TWILIO_AUTH_TOKEN="",
+        TWILIO_PHONE_NUMBER="",
+    )
+
+    assert settings.AADHAAR_MESSAGING_PROVIDER == "fake"
+
+
 def test_env_example_keys_match_settings_fields():
     """Every key in .env.example has a corresponding field on Settings."""
     # Read .env.example and parse keys

@@ -484,6 +484,46 @@ export const handlers = [
     return HttpResponse.json(mockAadhaarLinkResponse());
   }),
 
+  http.post(`${BASE}/aadhaar-link/:citizenRef/message`, async ({ request, params }) => {
+    const { err, slow, net } = getMockConfig();
+    if (net) return HttpResponse.error();
+    if (slow) await delay(700);
+    if (!request.headers.get('authorization')) {
+      return HttpResponse.json(
+        { error: { code: 'AUTH_REQUIRED', message: 'Sign in before sending a reminder.' } },
+        { status: 401 }
+      );
+    }
+    if (err === 'SMS_FAILED') {
+      return HttpResponse.json({
+        citizen_ref: String(params.citizenRef),
+        recipient_name: 'Aarav Demo',
+        masked_mobile: 'XXXXXX5001',
+        sms_status: 'failed',
+        voice_status: 'not_attempted',
+        message: 'SMS request failed; reminder call was not attempted.',
+      });
+    }
+    if (err === 'VOICE_FAILED') {
+      return HttpResponse.json({
+        citizen_ref: String(params.citizenRef),
+        recipient_name: 'Aarav Demo',
+        masked_mobile: 'XXXXXX5001',
+        sms_status: 'accepted',
+        voice_status: 'failed',
+        message: 'SMS request accepted; reminder call request failed.',
+      });
+    }
+    return HttpResponse.json({
+      citizen_ref: String(params.citizenRef),
+      recipient_name: 'Aarav Demo',
+      masked_mobile: 'XXXXXX5001',
+      sms_status: 'accepted',
+      voice_status: 'initiated',
+      message: 'SMS request accepted; reminder call request initiated.',
+    });
+  }),
+
   http.get(`${BASE}/aadhaar-link/assets/:assetRef`, ({ params }) => {
     const assetRef = String(params.assetRef);
     if (assetRef === 'DL-30001') {

@@ -1,10 +1,21 @@
-import { describe, expect, it } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { AadhaarLinkPage } from './AadhaarLinkPage';
 import { server } from '../test/setup';
 import { setMockConfig } from '../mocks/config';
+
+vi.mock('../utils/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: { access_token: 'test-access-token' } },
+        error: null,
+      }),
+    },
+  },
+}));
 
 function renderPage() {
   return render(<AadhaarLinkPage />);
@@ -143,5 +154,73 @@ describe('AadhaarLinkPage', () => {
     expect(await screen.findByText('Dev Demo')).toBeInTheDocument();
     expect(screen.getByText('0 Records')).toBeInTheDocument();
     expect(screen.getByText('No linked synthetic records found')).toBeInTheDocument();
+  });
+
+  it('opens the SMS composer, validates the message, confirms, and reports success', async () => {
+    renderPage();
+    await chooseFile();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Upload & Find Links' }));
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Send SMS reminder to Aarav Demo' }));
+    const dialog = screen.getByRole('dialog', { name: 'Send SMS reminder' });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('Aarav Demo')).toBeInTheDocument();
+    expect(within(dialog).getByText('XXXXXX5001')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+
+    await userEvent.setup().type(screen.getByLabelText('Custom SMS message'), 'Please visit the desk.');
+    expect(screen.getByText('22/320 characters')).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Send' }));
+    expect(screen.getByText(/Confirm sending this SMS to Aarav Demo at XXXXXX5001/)).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Confirm Send' }));
+
+    expect(await screen.findByText('SMS request accepted; reminder call request initiated.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirm Send' })).toBeDisabled();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'Send SMS reminder' })).not.toBeInTheDocument();
+  });
+
+  it('shows loading feedback while sending the reminder', async () => {
+    setMockConfig({ slow: true });
+    renderPage();
+    await chooseFile();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Upload & Find Links' }));
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Send SMS reminder to Aarav Demo' }));
+    await userEvent.setup().type(screen.getByLabelText('Custom SMS message'), 'Slow reminder.');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Send' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Confirm Send' }));
+
+    expect(screen.getByRole('button', { name: 'Sending...' })).toBeDisabled();
+    expect(await screen.findByText('SMS request accepted; reminder call request initiated.')).toBeInTheDocument();
+  });
+
+  it('reports SMS failure without claiming a reminder call was attempted', async () => {
+    setMockConfig({ err: 'SMS_FAILED' });
+    renderPage();
+    await chooseFile();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Upload & Find Links' }));
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Send SMS reminder to Aarav Demo' }));
+    await userEvent.setup().type(screen.getByLabelText('Custom SMS message'), 'Please check the counter.');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Send' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Confirm Send' }));
+
+    expect(await screen.findByText('SMS request failed; reminder call was not attempted.')).toBeInTheDocument();
+  });
+
+  it('reports voice reminder failure separately after SMS acceptance', async () => {
+    setMockConfig({ err: 'VOICE_FAILED' });
+    renderPage();
+    await chooseFile();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Upload & Find Links' }));
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Send SMS reminder to Aarav Demo' }));
+    await userEvent.setup().type(screen.getByLabelText('Custom SMS message'), 'Please check the update.');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Send' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Confirm Send' }));
+
+    expect(await screen.findByText('SMS request accepted; reminder call request failed.')).toBeInTheDocument();
   });
 });

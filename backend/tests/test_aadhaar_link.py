@@ -6,6 +6,7 @@ from PIL import Image
 from PIL.PngImagePlugin import PngInfo
 
 import app.services.aadhaar_link_service as aadhaar_service
+import app.services.aadhaar_messaging_service as messaging_service
 from app.fixtures.aadhaar_link_data import AADHAAR_UPLOAD_MARKER
 
 
@@ -120,8 +121,19 @@ class FakeSupabaseClient:
     def __exit__(self, exc_type, exc, tb):
         return False
 
-    def get(self, url, params):
+    def get(self, url, params=None, headers=None):
+        if url.endswith("/auth/v1/user"):
+            auth = (headers or {}).get("Authorization", "")
+            if auth == "Bearer valid-user-token":
+                return FakeSupabaseResponse({"id": "user-demo-001", "email": "operator@example.test"})
+            return FakeSupabaseResponse({"message": "unauthorized"}, status_code=401)
+
         if url.endswith("/demo_citizens"):
+            params = params or {}
+            citizen_filter = params.get("demo_ref")
+            if citizen_filter:
+                ref = citizen_filter.replace("eq.", "")
+                return FakeSupabaseResponse([row for row in self.citizens if row["demo_ref"] == ref])
             aadhaar_filter = params.get("demo_aadhaar_ref")
             if aadhaar_filter:
                 ref = aadhaar_filter.replace("eq.", "")
@@ -138,6 +150,221 @@ class FakeSupabaseClient:
 @pytest.fixture()
 def fake_supabase(monkeypatch):
     monkeypatch.setattr(aadhaar_service.httpx, "Client", FakeSupabaseClient)
+    monkeypatch.setattr(messaging_service.httpx, "Client", FakeSupabaseClient)
+
+
+@pytest.fixture()
+def messaging_enabled(monkeypatch):
+    monkeypatch.setattr(messaging_service.settings, "AADHAAR_MESSAGING_ENABLED", True)
+    monkeypatch.setattr(messaging_service.settings, "AADHAAR_MESSAGING_PROVIDER", "fake")
+    monkeypatch.setattr(messaging_service.settings, "AADHAAR_MESSAGE_RATE_LIMIT_SECONDS", 30)
+    messaging_service.reset_message_guards()
+    yield
+    messaging_service.reset_message_guards()
+
+
+class CaptureProvider(messaging_service.FakeAadhaarMessagingProvider):
+    last_instance = None
+
+    def __init__(self, *, sms_status="accepted", voice_status="accepted"):
+        super().__init__(sms_status=sms_status, voice_status=voice_status)
+        CaptureProvider.last_instance = self
+
+
+def _message_payload(key="request-1", message="Please visit the demo counter."):
+    return {"message": message, "idempotency_key": key}
+
+
+def test_aadhaar_message_requires_auth(client, fake_supabase, messaging_enabled):
+    response = client.post(
+        "/api/v1/aadhaar-link/CIT-10001/message",
+        json=_message_payload(),
+    )
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "AUTH_REQUIRED"
+
+
+def test_aadhaar_message_rejects_invalid_auth(client, fake_supabase, messaging_enabled):
+    response = client.post(
+        "/api/v1/aadhaar-link/CIT-10001/message",
+        headers={"Authorization": "Bearer invalid-user-token"},
+        json=_message_payload(),
+    )
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "AUTH_REQUIRED"
+
+
+def test_aadhaar_message_disabled_by_default(client, fake_supabase):
+    response = client.post(
+        "/api/v1/aadhaar-link/CIT-10001/message",
+        headers={"Authorization": "Bearer valid-user-token"},
+        json=_message_payload(),
+    )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "AADHAAR_MESSAGING_DISABLED"
+
+
+def test_aadhaar_message_resolves_recipient_server_side(client, monkeypatch, fake_supabase, messaging_enabled):
+    monkeypatch.setattr(messaging_service, "FakeAadhaarMessagingProvider", CaptureProvider)
+
+    response = client.post(
+        "/api/v1/aadhaar-link/CIT-10001/message",
+        headers={"Authorization": "Bearer valid-user-token"},
+        json={
+            **_message_payload(),
+            "mobile_number": "0000000000",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["sms_status"] == "accepted"
+    assert body["voice_status"] == "initiated"
+    assert body["masked_mobile"] == "XXXXXX5001"
+    assert "9000005001" not in str(body)
+    assert CaptureProvider.last_instance is not None
+    assert CaptureProvider.last_instance.sms_requests == [
+        ("9000005001", "Please visit the demo counter.")
+    ]
+    assert CaptureProvider.last_instance.voice_requests == [
+        ("9000005001", messaging_service.VOICE_REMINDER_TEXT)
+    ]
+
+
+def test_aadhaar_message_sms_failure_prevents_voice(client, monkeypatch, fake_supabase, messaging_enabled):
+    class SmsFailureProvider(CaptureProvider):
+        def __init__(self):
+            super().__init__(sms_status="failed")
+
+    monkeypatch.setattr(messaging_service, "FakeAadhaarMessagingProvider", SmsFailureProvider)
+
+    response = client.post(
+        "/api/v1/aadhaar-link/CIT-10001/message",
+        headers={"Authorization": "Bearer valid-user-token"},
+        json=_message_payload(),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["sms_status"] == "failed"
+    assert body["voice_status"] == "not_attempted"
+    assert CaptureProvider.last_instance is not None
+    assert CaptureProvider.last_instance.voice_requests == []
+
+
+def test_aadhaar_message_sms_success_voice_failure(client, monkeypatch, fake_supabase, messaging_enabled):
+    class VoiceFailureProvider(CaptureProvider):
+        def __init__(self):
+            super().__init__(voice_status="failed")
+
+    monkeypatch.setattr(messaging_service, "FakeAadhaarMessagingProvider", VoiceFailureProvider)
+
+    response = client.post(
+        "/api/v1/aadhaar-link/CIT-10001/message",
+        headers={"Authorization": "Bearer valid-user-token"},
+        json=_message_payload(),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["sms_status"] == "accepted"
+    assert body["voice_status"] == "failed"
+    assert body["message"] == "SMS request accepted; reminder call request failed."
+
+
+def test_aadhaar_message_duplicate_submission_is_blocked(client, fake_supabase, messaging_enabled):
+    headers = {"Authorization": "Bearer valid-user-token"}
+    first = client.post(
+        "/api/v1/aadhaar-link/CIT-10001/message",
+        headers=headers,
+        json=_message_payload(key="same-key"),
+    )
+    second = client.post(
+        "/api/v1/aadhaar-link/CIT-10001/message",
+        headers=headers,
+        json=_message_payload(key="same-key"),
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 409
+    assert second.json()["error"]["code"] == "DUPLICATE_MESSAGE_REQUEST"
+
+
+def test_twilio_provider_submits_sms_then_voice(monkeypatch):
+    calls = []
+
+    class FakeTwilioResponse:
+        def __init__(self, sid):
+            self._sid = sid
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"sid": self._sid, "status": "queued"}
+
+    class FakeTwilioClient:
+        def __init__(self, *args, **kwargs):
+            self.auth = kwargs.get("auth")
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def post(self, url, data):
+            calls.append((url, data, self.auth))
+            return FakeTwilioResponse(f"SM{len(calls)}")
+
+    monkeypatch.setattr(messaging_service.httpx, "Client", FakeTwilioClient)
+    monkeypatch.setattr(messaging_service.settings, "TWILIO_ACCOUNT_SID", "AC_test")
+    monkeypatch.setattr(messaging_service.settings, "TWILIO_AUTH_TOKEN", "auth-token")
+    monkeypatch.setattr(messaging_service.settings, "TWILIO_PHONE_NUMBER", "+15551230000")
+
+    provider = messaging_service.TwilioAadhaarMessagingProvider()
+    sms = provider.send_sms(to_mobile="9000005001", message="Please visit the demo counter.")
+    voice = provider.initiate_voice_reminder(
+        to_mobile="9000005001",
+        script=messaging_service.VOICE_REMINDER_TEXT,
+    )
+
+    assert sms.status == "accepted"
+    assert voice.status == "accepted"
+    assert calls[0][0].endswith("/Messages.json")
+    assert calls[0][1]["To"] == "+919000005001"
+    assert calls[0][1]["Body"] == "Please visit the demo counter."
+    assert calls[1][0].endswith("/Calls.json")
+    assert calls[1][1]["To"] == "+919000005001"
+    assert calls[1][1]["Twiml"].endswith(
+        "<Response><Say>namashkar, ap please apka sms dekhiye. namaste, please check your sms.</Say></Response>"
+    )
+    assert calls[0][2] == ("AC_test", "auth-token")
+
+
+def test_twilio_provider_sms_failure_prevents_voice(client, monkeypatch, fake_supabase, messaging_enabled):
+    class SmsFailureProvider(CaptureProvider):
+        def __init__(self):
+            super().__init__(sms_status="failed")
+
+    monkeypatch.setattr(messaging_service.settings, "AADHAAR_MESSAGING_PROVIDER", "twilio")
+    monkeypatch.setattr(messaging_service, "TwilioAadhaarMessagingProvider", SmsFailureProvider)
+
+    response = client.post(
+        "/api/v1/aadhaar-link/CIT-10001/message",
+        headers={"Authorization": "Bearer valid-user-token"},
+        json=_message_payload(),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["sms_status"] == "failed"
+    assert body["voice_status"] == "not_attempted"
+    assert CaptureProvider.last_instance is not None
+    assert CaptureProvider.last_instance.voice_requests == []
 
 
 def test_aadhaar_link_upload_reads_supabase_and_cleans_temp_files(

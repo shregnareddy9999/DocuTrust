@@ -239,3 +239,13 @@ export function FingerprintIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function MessageIcon(props: IconProps) {
+  return (
+    <svg {...iconProps(props)}>
+      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+      <path d="M8 9h8" />
+      <path d="M8 13h5" />
+    </svg>
+  );
+}

@@ -2115,6 +2115,16 @@ th:last-child {
   font-size: 13px;
 }
 
+.aadhaar-mobile-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aadhaar-mobile-row strong {
+  margin-top: 0;
+}
+
 .aadhaar-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2288,6 +2298,41 @@ th:last-child {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: #fff;
+}
+
+.aadhaar-message-modal {
+  max-width: min(560px, 94vw);
+}
+
+.aadhaar-message-recipient {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--subdued);
+  margin-bottom: 16px;
+}
+
+.aadhaar-message-recipient span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.aadhaar-message-recipient strong {
+  color: var(--text);
+}
+
+.aadhaar-message-field textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 128px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  padding: 10px 12px;
+  color: var(--text);
+  background: var(--card);
+  font: inherit;
 }
 
 /* §2.4/2.6 — safe-area insets (notched phones). Requires viewport-fit=cover in index.html. */

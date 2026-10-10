@@ -3,6 +3,26 @@
 **Status:** Implemented locally, not committed or pushed.
 **Scope:** Separate synthetic Aadhaar Link demo feature. No database schema changes, no new environment variables, no new dependencies, no changes to existing verification categories.
 
+## 2026-10-10 CIT-10005 Sample Asset Generation
+
+### Changes made
+- Generated six fictional local sample assets for `CIT-10005` using the existing Aadhaar Link
+  fixture rendering functions and the existing `backend/app/fixtures/sample_documents/` convention:
+  - `aadhaar_demo_card_aad_10005.png` (`AAD-10005`)
+  - `aadhaar_link_pan_20005.png` (`PAN-20005`)
+  - `aadhaar_link_dl_30005.pdf` (`DL-30005`)
+  - `aadhaar_link_brc_40005.pdf` (`BRC-40005`)
+  - `aadhaar_link_bnk_60005.pdf` (`BNK-60005`)
+  - `aadhaar_link_vtr_70005.png` (`VTR-70005`)
+- No backend API, schema, dependency, environment, or frontend workflow changes were made.
+
+### Verification
+- Confirmed all six files exist under `backend/app/fixtures/sample_documents/`.
+- Confirmed the Aadhaar demo card PNG metadata includes:
+  - `DocuTrustDemoMarker: DOCUTRUST SYNTHETIC AADHAAR DEMO CARD`
+  - `AadhaarDemoReference: AAD-10005`
+  - `CitizenDemoReference: CIT-10005`
+
 ## 2026-10-10
 
 ### Supabase verification
@@ -173,3 +193,72 @@
 
 ### Remaining limitation
 - Supabase can add citizens and linked PAN rows without code changes, and the generator can create matching local demo samples for them. Non-PAN linked record previews still need either a local file following the `aadhaar_link_<lowercase_ref_with_underscores>.<png|jpg|jpeg|pdf>` convention or a future generator template for that document type.
+
+## 2026-10-10 Mocked SMS and Voice Reminder Workflow
+
+### Changes made
+- Added a fake-provider-only Aadhaar Link messaging workflow behind `AADHAAR_MESSAGING_ENABLED=false` and `AADHAAR_MESSAGING_PROVIDER=fake`.
+- Added Supabase bearer authentication for `POST /api/v1/aadhaar-link/{citizen_ref}/message`.
+- Added backend server-side recipient resolution from the synthetic `demo_citizens` record; the frontend never supplies a trusted phone number.
+- Added in-memory duplicate/rate protection keyed by authenticated user, citizen, and request idempotency key.
+- Added the SMS-first flow: the fake voice reminder is attempted only when the fake SMS provider returns `accepted`.
+- Added safe API responses with separate `sms_status` and `voice_status` values and only masked mobile numbers.
+- Added an Aadhaar Link SMS icon button, accessible composer dialog, masked recipient display, custom-message textarea, character count, confirmation step, loading state, and safe success/error messages.
+- Updated `docs/api.md`, `docs/configuration.md`, `docs/security-privacy.md`, and `backend/.env.example` for the new mocked-only contract and configuration.
+
+### Verification
+- `cd backend; .\venv311\Scripts\python.exe -m pytest tests\test_aadhaar_link.py tests\test_config.py -q -p no:cacheprovider --basetemp .test-tmp\pytest-aadhaar-message`
+  - First complete run: 27 passed in 1.41s.
+  - Rerun after adding invalid-token coverage: 28 passed in 1.19s.
+- `cd frontend; npm test -- AadhaarLinkPage.test.tsx`
+  - First sandbox run failed with `spawn EPERM`.
+  - Approved rerun after test assertion fixes: 1 file / 10 tests passed.
+- `cd frontend; npm run typecheck`
+  - exit 0.
+
+### Remaining limitation
+- Messaging remains mocked only. No real SMS messages or voice calls are sent.
+- Duplicate/rate safeguards are in memory for the demo and reset on backend restart or across separate worker processes.
+- The endpoint authorizes only valid Supabase-authenticated users because the MVP has no approved role table or employee-permission schema.
+
+## 2026-10-10 Twilio Real Provider Integration
+
+### Changes made
+- Added a real Twilio provider for the existing Aadhaar Link messaging workflow using backend-only credentials and existing `httpx`; no dependency was added.
+- Kept the existing API request/response shape while changing runtime provider selection to `AADHAAR_MESSAGING_PROVIDER=twilio|fake`.
+- Kept `AADHAAR_MESSAGING_ENABLED=false` as the default opt-in guard.
+- Reused existing backend-only `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_PHONE_NUMBER` settings.
+- Added fail-fast settings validation when Twilio messaging is enabled without required Twilio credentials.
+- SMS is submitted first through Twilio Messages; the voice call request is submitted through Twilio Calls with inline TwiML only after SMS request acceptance.
+- Updated response wording to distinguish provider request acceptance from delivery or call completion.
+- Kept automated tests on fake/mocked providers; no test sends a real SMS or places a real call.
+- Updated `docs/api.md`, `docs/configuration.md`, `docs/security-privacy.md`, and `backend/.env.example`.
+
+### Verification
+- `cd backend; .\venv311\Scripts\python.exe -m pytest tests\test_aadhaar_link.py tests\test_config.py -q -p no:cacheprovider --basetemp .test-tmp\pytest-aadhaar-twilio`
+  - 32 passed in 1.37s.
+- `cd backend; .\venv311\Scripts\python.exe -m pytest tests\test_aadhaar_link.py tests\test_config.py -q -p no:cacheprovider --basetemp .test-tmp\pytest-aadhaar-twilio-env`
+  - First run after enabling local `.env` messaging flags: 1 failed, 31 passed.
+  - Cause: test settings were inheriting real local `.env` messaging flags.
+  - Fixed by explicitly disabling messaging in the backend test settings fixture unless a test opts in.
+  - Rerun: 32 passed in 1.15s.
+- `cd frontend; npm test -- AadhaarLinkPage.test.tsx`
+  - First sandbox run failed with `spawn EPERM`.
+  - Approved rerun: 1 file / 10 tests passed.
+- `cd frontend; npm run typecheck`
+  - exit 0.
+
+### Remaining limitation
+- Real SMS/call delivery depends on Twilio account state, sender/caller capabilities, recipient eligibility, geographic permissions, and India SMS/voice compliance. The endpoint reports Twilio request acceptance only.
+- Duplicate/rate safeguards remain in memory for the demo and reset on backend restart or across separate worker processes.
+
+## 2026-10-10 Voice Prompt Text Update
+
+### Changes made
+- Updated the Aadhaar Link voice reminder prompt only:
+  - `namashkar, ap please apka sms dekhiye. namaste, please check your sms.`
+- Kept the existing SMS-first Twilio workflow, API shape, authentication, and server-side recipient lookup unchanged.
+
+### Verification
+- `cd backend; .\venv311\Scripts\python.exe -m pytest tests\test_aadhaar_link.py tests\test_config.py -q -p no:cacheprovider --basetemp .test-tmp\pytest-aadhaar-voice-text`
+  - 32 passed in 1.22s.

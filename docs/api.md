@@ -296,6 +296,59 @@ never exposed to the frontend.
 
 Errors: `401 AUTH_REQUIRED`, `503 ACCOUNT_DELETION_UNAVAILABLE`.
 
+## `POST /aadhaar-link/{citizen_ref}/message`
+
+Submits a custom SMS reminder through the Aadhaar Link messaging workflow. This endpoint is
+authenticated: the frontend sends the signed-in Supabase access token as
+`Authorization: Bearer <token>`. With the current MVP auth model, a valid Supabase-authenticated
+user is the authorization gate; no role table or employee permission schema exists yet.
+
+The backend resolves the recipient mobile number from the server-side synthetic citizen record using
+`citizen_ref`. The request must not include, and the backend must not trust, a phone number from the
+frontend. The configured provider first accepts or fails the SMS request; only an accepted SMS
+request may attempt the bilingual voice reminder:
+
+`namashkar, ap please apka sms dekhiye. namaste, please check your sms.`
+
+Request:
+
+```json
+{
+  "message": "Please visit the demo counter.",
+  "idempotency_key": "client-generated-request-key"
+}
+```
+
+`200`
+
+```json
+{
+  "citizen_ref": "CIT-10001",
+  "recipient_name": "Aarav Demo",
+  "masked_mobile": "XXXXXX5001",
+  "sms_status": "accepted",
+  "voice_status": "initiated",
+  "message": "SMS request accepted; reminder call request initiated."
+}
+```
+
+`sms_status` is `accepted|failed`. `voice_status` is `initiated|failed|not_attempted`.
+`voice_status: "not_attempted"` is returned when SMS fails. Do not report final delivery from this
+endpoint; it reports provider request acceptance only. With Twilio, `accepted` means the Twilio REST
+API accepted the SMS create request, and `initiated` means Twilio accepted the outbound call create
+request. It does not mean the SMS was delivered or the call was answered/completed.
+
+Errors: `401 AUTH_REQUIRED`, `404 AADHAAR_RECIPIENT_NOT_FOUND`, `409 DUPLICATE_MESSAGE_REQUEST`,
+`422 EMPTY_MESSAGE`, `422 MESSAGE_TOO_LONG`, `422 MISSING_IDEMPOTENCY_KEY`,
+`422 AADHAAR_RECIPIENT_NOT_ELIGIBLE`, `503 AUTH_UNAVAILABLE`, `503 AADHAAR_MESSAGING_DISABLED`,
+`503 AADHAAR_MESSAGING_UNAVAILABLE`.
+
+Runtime sending uses Twilio when `AADHAAR_MESSAGING_ENABLED=true` and
+`AADHAAR_MESSAGING_PROVIDER=twilio`. Automated tests use the fake provider and must not contact
+Twilio. The implementation must not expose full phone numbers, message bodies, credentials, or
+provider secrets in API responses or logs. Duplicate/rate safeguards are in-memory for the demo and
+reset on backend restart.
+
 ---
 
 ## HTTP status summary
