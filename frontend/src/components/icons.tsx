@@ -226,3 +226,16 @@ export function EyeOffIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function FingerprintIcon(props: IconProps) {
+  return (
+    <svg {...iconProps(props)}>
+      <path d="M2 12a10 10 0 0 1 20 0" />
+      <path d="M6 12a6 6 0 0 1 12 0" />
+      <path d="M10 12a2 2 0 0 1 4 0" />
+      <path d="M4 16c1.5 2.4 3.5 4 8 4" />
+      <path d="M20 16c-1.5 2.4-3.5 4-8 4" />
+      <path d="M12 12v4" />
+    </svg>
+  );
+}
